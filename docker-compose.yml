@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  flask-app:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=run.py
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    networks:
+      - flask-network
+
+networks:
+  flask-network:
+    driver: bridge
