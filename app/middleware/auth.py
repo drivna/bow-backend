@@ -16,7 +16,7 @@ def add_token_to_cookies(response: Response, registered_user_id: str):
     response.set_cookie(
         "token",
         access_token,
-        domain="localhost",
+        domain="127.0.0.1",
         httponly=True,
         max_age=expires,
         samesite="None",

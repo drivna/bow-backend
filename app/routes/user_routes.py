@@ -1,3 +1,4 @@
+from flask_restx import Namespace, fields, Model
 from typing import Any, Dict, Tuple, List
 from flask_restx import Namespace, Resource
 from flask import Response, after_this_request, request
@@ -11,6 +12,25 @@ from app.middleware.auth import add_token_to_cookies
 from app.utils.password_utils import are_passwords_matching, hash_password
 
 user_api_ns = Namespace("users", description="APIs for users")
+
+
+def get_login_api_request_model(namespace):
+    request_model = namespace.model(
+        "LoginUserApiRequestModel",
+        {
+            "email": fields.String(
+                required=True,
+                description="Email of the user",
+                help="Email of user is required",
+            ),
+            "password": fields.String(
+                required=True,
+                description="Password of the user",
+                help="Password of user is required",
+            ),
+        },
+    )
+    return request_model
 
 
 @user_api_ns.route("/register")
@@ -27,13 +47,11 @@ class UserRegistrationRoutes(Resource):
                 return response
 
         request_data: Dict[str, List[Dict[str, Any]]] = request.json  # type: ignore
-        company_id: str = request_data.get("company_id")
         user_name: str = request_data.get("user_name")
         email: str = request_data.get("email")
         password: str = request_data.get("password")
 
         user: UserModel = UserModel(
-            company_id=company_id,
             user_name=user_name,
             email=email,
             password=hash_password(password),
@@ -50,6 +68,7 @@ class UserRegistrationRoutes(Resource):
 
 @user_api_ns.route("/login")
 class UserLoginRoutes(Resource):
+    @user_api_ns.expect(get_login_api_request_model(namespace=user_api_ns), validate=True)
     def post(self) -> Tuple[Dict[str, Any], int]:
         @after_this_request
         def add_token(response: Response):
