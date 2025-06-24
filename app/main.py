@@ -15,7 +15,7 @@ from app.routes.action_routes import action_api_ns
 environment = os.getenv("ENVIRONMENT")
 app = Flask(__name__)
 socket_client = socketio.Client()
-socket_client.connect("http://localhost:4001")
+
 
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 

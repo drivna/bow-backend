@@ -9,6 +9,7 @@ from app.database import query_manager
 from app.database.models.user import UserModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import add_token_to_cookies
+from app.utils.jwt_utils import get_attribute_from_token
 from app.utils.password_utils import are_passwords_matching, hash_password
 
 user_api_ns = Namespace("users", description="APIs for users")
@@ -105,5 +106,18 @@ class UserLoginRoutes(Resource):
         return {
             "error": None,
             "message": "user logged in successfully",
+            "data": {"id": user_id},
+        }, 201
+
+
+
+@user_api_ns.route("/socket/auth")
+class UserSocketAuthRoute(Resource):
+    def get(self) ->Tuple[Dict[str,Any],int]:
+        user_token: str = request.headers.get("Authorization") 
+        user_id:str = get_attribute_from_token(token=user_token, attr_name="user_id")
+        return {
+            "error": None,
+            "message": "user authenticated successfully",
             "data": {"id": user_id},
         }, 201

@@ -29,7 +29,7 @@ class ActionSummaryRoutes(Resource):
             system_prompt_for_summary_agent: str = ChatGptPrompts.get_pdf_summary_prompt()
             message_for_model: List[
                 Dict[str, Any]
-            ] = ChatGptMessagePayload.get_mesasage_payload_for_entire_pdf_explaination(
+            ] = ChatGptMessagePayload.get_mesasage_payload_for_entire_pdf_summary(
                 prompt=system_prompt_for_summary_agent, pdf_text=file_object.file_content
             )
         else:
@@ -44,33 +44,8 @@ class ActionSummaryRoutes(Resource):
                 )
             )
 
-        featch_and_stream_response_from_model(message_for_model=message_for_model)
+        featch_and_stream_response_from_model(message_for_model=message_for_model, user_id='user_17ae337cff')
 
         return {}
 
 
-@action_api_ns.route("/explain")
-class ActionExplainRoutes(Resource):
-    parser: RequestParser = RequestParser()
-    parser.add_argument("fileId", help="FileId", required=True)
-
-    @action_api_ns.expect(parser)
-    def post(self):
-        args: ParseResult = self.parser.parse_args()
-        file_id: str = args.get("fileId")
-        file_object: FileModel = ObjectRepository.get_object_by_id(
-            model=FileModel, object_id=file_id
-        )
-
-        system_prompt_for_summary_agent: str = ChatGptPrompts.get_detailed_explanation_prompt()
-        message_for_model: List[
-            Dict[str, Any]
-        ] = ChatGptMessagePayload.get_mesasage_payload_for_entire_pdf_explaination(
-            prompt=system_prompt_for_summary_agent, pdf_text=file_object.file_content
-        )
-
-        featch_and_stream_response_from_model(
-            prompt=system_prompt_for_summary_agent, pdf_text=file_object.file_content
-        )
-
-        return {}

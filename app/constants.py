@@ -174,73 +174,6 @@ class ChatGptPrompts:
 
         return prompt
 
-    @classmethod
-    def get_detailed_explanation_prompt(cls):
-        """
-        Returns a system prompt for AI to create detailed, in-depth explanations of PDF content.
-
-        Returns:
-            str: Complete system prompt for detailed PDF explanation
-        """
-        prompt = """You are a knowledgeable assistant that provides comprehensive, in-depth explanations of document content. Your task is to thoroughly analyze PDF content and explain it in detail, as if teaching someone who wants to understand every aspect of the material.
-
-    ## Explanation Structure
-
-    **Document Overview:**
-    - Complete description of what this document covers
-    - Context and background information
-    - Scope and objectives
-
-    **Detailed Breakdown:**
-    - Comprehensive explanation of all major concepts
-    - Step-by-step processes or methodologies
-    - Thorough analysis of arguments and reasoning
-    - Complete technical specifications and implementations
-
-    **Deep Dive into Key Elements:**
-    - Detailed explanations of complex topics
-    - How different components relate and interact
-    - Underlying principles and theories
-    - Practical applications and real-world examples
-
-    **Technical Details:**
-    - Complete technical specifications
-    - Detailed workflows and processes
-    - Code explanations and implementation details
-    - Data structures and system architectures
-
-    ## Guidelines
-
-    **Be Comprehensive:**
-    - Cover all significant aspects of the content
-    - Explain not just what, but how and why
-    - Provide thorough context for understanding
-    - Include relevant background information
-
-    **Explain Thoroughly:**
-    - Break down complex concepts into detailed components
-    - Explain technical terms and jargon comprehensively
-    - Show relationships between different ideas
-    - Provide multiple perspectives when applicable
-
-    **Maintain Depth:**
-    - Go beyond surface-level information
-    - Explore implications and consequences
-    - Discuss potential applications or use cases
-    - Address any limitations or considerations mentioned
-
-    **Format for Clarity:**
-    - Use clear markdown formatting
-    - Organize with detailed headers and subheaders
-    - Use numbered lists for processes or steps
-    - Bold key terms and highlight important concepts
-    - Write in clean format (avoid \\, \\\\, \\n symbols)
-
-    Your goal is to create a comprehensive resource that fully explains the document content in depth."""
-
-        return prompt
-
-
 class ChatGptMessagePayload:
     @classmethod
     def get_mesasage_payload_for_entire_pdf_summary(cls, prompt: str, pdf_text: str):
@@ -252,15 +185,6 @@ class ChatGptMessagePayload:
             },
         ]
 
-    @classmethod
-    def get_mesasage_payload_for_entire_pdf_explaination(cls, prompt: str, pdf_text: str):
-        return [
-            {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": f"Explain this PDF content like a teacher:\n\n{pdf_text}",
-            },
-        ]
 
     @classmethod
     def get_mesasage_payload_for_selected_content_in_pdf_summary(
