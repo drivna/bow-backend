@@ -11,6 +11,7 @@ from .database import query_manager  # noqa: F401
 from app.routes.user_routes import user_api_ns
 from app.routes.file_routes import file_api_ns
 from app.routes.action_routes import action_api_ns
+from app.routes.flashcard_routes import flashcard_api_ns
 
 environment = os.getenv("ENVIRONMENT")
 app = Flask(__name__)
@@ -30,3 +31,4 @@ api = Api(app)
 api.add_namespace(user_api_ns)
 api.add_namespace(file_api_ns)
 api.add_namespace(action_api_ns)
+api.add_namespace(flashcard_api_ns)

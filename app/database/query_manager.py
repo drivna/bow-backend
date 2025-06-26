@@ -12,6 +12,9 @@ from app.database.models.base import Base
 database_engine = DatabaseEngine.create_mysql_db_engine()
 from .models.user import UserModel  # noqa: F401
 from .models.file import FileModel  # noqa: F401
+from .models.flashcards import FlashCardModel  # noqa: F401
+from .models.qna import QNAModel  # noqa: F401
+from .models.qna_actions import QNAActions  # noqa: F401
 
 Base.metadata.create_all(database_engine)
 

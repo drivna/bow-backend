@@ -1,5 +1,6 @@
 import socketio
 
+
 def send_to_socket(message, user_id, token, message_type="message"):
     print(1, message)
     sio = socketio.Client()
@@ -7,10 +8,7 @@ def send_to_socket(message, user_id, token, message_type="message"):
     try:
         sio.connect("http://localhost:4001", auth={"token": token})
 
-        payload = {
-            "data": message,
-            "type": message_type
-        }
+        payload = {"data": message, "type": message_type}
 
         if user_id:
             payload["user_id"] = user_id

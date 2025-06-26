@@ -110,12 +110,11 @@ class UserLoginRoutes(Resource):
         }, 201
 
 
-
 @user_api_ns.route("/socket/auth")
 class UserSocketAuthRoute(Resource):
-    def get(self) ->Tuple[Dict[str,Any],int]:
-        user_token: str = request.headers.get("Authorization") 
-        user_id:str = get_attribute_from_token(token=user_token, attr_name="user_id")
+    def get(self) -> Tuple[Dict[str, Any], int]:
+        user_token: str = request.headers.get("Authorization")
+        user_id: str = get_attribute_from_token(token=user_token, attr_name="user_id")
         return {
             "error": None,
             "message": "user authenticated successfully",

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, List
 
 
 class ChatGptPrompts:
@@ -174,6 +174,60 @@ class ChatGptPrompts:
 
         return prompt
 
+    @classmethod
+    def get_flashcard_generation_prompt(cls, previous_questions: List[str] = []):
+        base_prompt = """You are a personal tutor helping a student revise and understand a PDF they are reading.
+
+        Your task is to carefully review the content of the PDF and generate a callout with open-ended, reflective questions that help the student think deeply about the material and reinforce their learning.
+
+        Each question should:
+        - Be directly based on the content of the PDF
+        - Encourage reflection, personal opinions, interpretations, or real-world application
+        - Be between 10 to 15 words in length
+        - Be empathetic and conversational, as if a tutor is personally guiding the student"""
+
+        # Handle exclusion instruction based on previous questions
+        exclusion_instruction = ""
+        if previous_questions:
+            questions_text = "\n".join(previous_questions)
+        else:
+            questions_text = ""
+
+        exclusion_instruction = f"""
+        - Be completely different from any previously generated questions listed below
+
+        AVOID generating questions similar to these previously asked ones:
+        {questions_text}
+
+        Focus on exploring different aspects, themes, or sections of the PDF that haven't been covered yet."""
+
+        # Complete prompt
+        output_format = """
+
+        Return a JSON object with:
+        - A short, descriptive "heading" (max 4 characters) summarizing the topic or goal of the callout
+        - An array of exactly 5 open-ended questions
+        - Each question must include a corresponding answer based on the PDF content
+
+        Output format (do NOT include triple quotes or code fences):
+
+        {
+        "heading": "Callout title goes here",
+        "questions": [
+            {
+            "type": "open_ended",
+            "value": "What do you think the author meant by this section's central message?",
+            "answer": "The author emphasized that resilience is developed through sustained challenges and reflection."
+            },
+            ...
+        ]
+        }
+
+        Only return valid JSON. All text must be in English."""
+
+        return base_prompt + exclusion_instruction + output_format
+
+
 class ChatGptMessagePayload:
     @classmethod
     def get_mesasage_payload_for_entire_pdf_summary(cls, prompt: str, pdf_text: str):
@@ -184,7 +238,6 @@ class ChatGptMessagePayload:
                 "content": f"Summarise this PDF content like a teacher:\n\n{pdf_text}",
             },
         ]
-
 
     @classmethod
     def get_mesasage_payload_for_selected_content_in_pdf_summary(
@@ -205,5 +258,41 @@ class ChatGptMessagePayload:
             {selected_content}
 
             Remember to use the full PDF context to enhance your understanding, but summarize only the selected portion.""",
+            },
+        ]
+
+    @classmethod
+    def get_message_payload_for_pdf_questions(cls, prompt: str, pdf_content: str):
+        return [
+            {"role": "system", "content": prompt},
+            {
+                "role": "user",
+                "content": f"""Here is the FULL PDF CONTENT to base your response on:
+
+        {pdf_content}
+
+        ---
+
+        Your task is to act as a personal tutor. Based on this content, generate 7 thoughtful open-ended questions to help a student reflect and revise what they've read.
+
+        Each question must:
+        - Be between 10 to 15 words long
+        - Be directly based on the PDF content
+        - Encourage critical thinking or reflection
+        - Be followed by a correct and concise answer based on the PDF
+
+        Return only a valid JSON object using this schema:
+
+        {{
+        "questions": [
+            {{
+            "value": "Open-ended question here",
+            "answer": "Correct answer here"
+            }},
+            ...
+        ]
+        }}
+
+        Do not include a heading. Do not add explanations or any text outside the JSON object.""",
             },
         ]
