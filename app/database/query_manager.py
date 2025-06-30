@@ -15,6 +15,10 @@ from .models.file import FileModel  # noqa: F401
 from .models.flashcards import FlashCardModel  # noqa: F401
 from .models.qna import QNAModel  # noqa: F401
 from .models.qna_actions import QNAActions  # noqa: F401
+from .models.flashcard_qna import FlashCardQnAModel  # noqa: F401
+from .models.quiz import QuizModel  # noqa: F401
+from .models.quiz_qna import QuizQnAModel  # noqa: F401
+from .models.quiz_answers import QuizUserAnswersModel  # noqa: F401
 
 Base.metadata.create_all(database_engine)
 
@@ -56,11 +60,18 @@ def query_with_filter(
     limit: Optional[int] = None,
     offset: int = 0,
     is_dict_response: bool = False,
+    options: Optional[List[Any]] = None,  # New parameter for eager loading
 ) -> List[T]:
     values = []
     with Session(database_engine) as session:
         try:
-            query = session.query(model).filter(filters).order_by(order_by)
+            query = session.query(model).filter(filters)
+
+            if options:
+                query = query.options(*options)
+
+            if order_by is not None:
+                query = query.order_by(order_by)
 
             if limit:
                 query = query.limit(limit)
@@ -71,13 +82,13 @@ def query_with_filter(
             results = query.all()
 
             for result_row in results:
-                if is_dict_response is True:
+                if is_dict_response:
                     values.append(result_row._asdict())  # type: ignore[attr-defined]
                 else:
                     values.append(result_row)
 
         except Exception as e:
-            logger.error(f"Error in reading objects from database. {e.args}")
+            logger.error(f"Error in reading objects from database. {e}")
             raise e
 
     return values
@@ -106,11 +117,18 @@ def update_single_object(model: Type[T], updated_object: T) -> T:
 
 
 def query_one_with_filter(
-    filters: Union[ColumnElement[bool], BinaryExpression[bool]], model: Type[T]
+    filters: Union[ColumnElement[bool], BinaryExpression[bool]],
+    model: Type[T],
+    options: Optional[List[Any]] = None,  # New parameter for eager loading
 ) -> Optional[T]:
     with Session(database_engine) as session:
         try:
-            result = session.query(model).filter(filters).one_or_none()
+            query = session.query(model).filter(filters)
+            if options:
+                query = query.options(*options)
+
+            result = query.one_or_none()
+
             value = result
 
             session.expunge_all()

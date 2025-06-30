@@ -227,6 +227,91 @@ class ChatGptPrompts:
 
         return base_prompt + exclusion_instruction + output_format
 
+    @classmethod
+    def get_quiz_generation_prompt_with_model_name(
+        cls,
+        pdf_text: str,
+        difficulty: str,
+        topics: List[str] = None,
+        previous_questions: List[str] = None,
+        previous_quiz_names: List[str] = None,
+    ) -> str:
+        """
+        Constructs a prompt to generate a quiz with questions and a unique quiz name suggested by the model.
+
+        Args:
+            pdf_text (str): Full extracted PDF content.
+            difficulty (str): One of 'easy', 'medium', 'hard'.
+            topics (list, optional): Topics to restrict question generation to.
+            previous_questions (list, optional): Previously asked questions to avoid.
+            previous_quiz_names (list, optional): List of past quiz names to avoid repetition.
+
+        Returns:
+            str: Prompt string to be passed to the model.
+        """
+
+        topics_text = ", ".join(topics) if topics else ""
+        topics_instruction = (
+            f"strictly based on these topics only: {topics_text}"
+            if topics
+            else "based on the entire study material"
+        )
+
+        prev_qs_text = "\n".join(previous_questions) if previous_questions else ""
+        prev_qs_instruction = (
+            f'Do NOT repeat or paraphrase any of these previously asked questions:\n"""\n{prev_qs_text}\n"""'
+            if previous_questions
+            else ""
+        )
+
+        prev_quiz_names_text = "\n".join(previous_quiz_names) if previous_quiz_names else ""
+        prev_name_instruction = (
+            f'The quiz must have a **unique and meaningful name**, different from any of the following previously used quiz names:\n"""\n{prev_quiz_names_text}\n"""'
+            if previous_quiz_names
+            else "Generate a unique and meaningful name for this quiz."
+        )
+
+        prompt = f"""
+            You are an experienced teacher and exam creator.
+
+            Using the study material provided below, perform the following:
+
+            1. Suggest a unique and meaningful name for this quiz. {prev_name_instruction}
+            2. Generate exactly 5 multiple-choice questions of **{difficulty}** difficulty, {topics_instruction}.
+
+            Each question must follow these rules:
+            - 4 options labeled 1, 2, 3, 4.
+            - One or more options may be correct. Return correct answers as a list, like [1] or [2, 4].
+
+            Format your response as valid JSON like this:
+
+            {{
+            "quiz_name": "Meaningful Unique Title",
+            "questions": [
+                {{
+                "question": "What is the capital of France?",
+                "options": {{
+                    "1": "Paris",
+                    "2": "Berlin",
+                    "3": "Madrid",
+                    "4": "Rome"
+                }},
+                "correct_answer": [1],
+                "difficulty": "{difficulty}"
+                }}
+            ]
+            }}
+
+            {prev_qs_instruction}
+
+            Study Material:
+            \"\"\"
+            {pdf_text}
+            \"\"\"
+        """
+
+        return prompt.strip()
+
 
 class ChatGptMessagePayload:
     @classmethod
@@ -237,6 +322,22 @@ class ChatGptMessagePayload:
                 "role": "user",
                 "content": f"Summarise this PDF content like a teacher:\n\n{pdf_text}",
             },
+        ]
+
+    @classmethod
+    def get_message_payload_for_quiz(cls, prompt: str) -> list:
+        """
+        Returns a ChatGPT-compatible payload with the prompt passed as system message.
+
+        Args:
+            prompt (str): Prompt string built by `build_quiz_prompt`.
+
+        Returns:
+            List[Dict[str, str]]: Message payload for OpenAI API
+        """
+        return [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": "Generate the quiz now."},
         ]
 
     @classmethod
@@ -296,3 +397,6 @@ class ChatGptMessagePayload:
         Do not include a heading. Do not add explanations or any text outside the JSON object.""",
             },
         ]
+
+
+LOW_POOL_THRESHOLD: int = 1

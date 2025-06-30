@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, List
 from sqlalchemy import ForeignKey, String, Enum as sqlEnum, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
@@ -13,12 +13,6 @@ class QuestionSource(Enum):
 
 class QNAModel(Base):
     id: Mapped[str] = mapped_column("ID", String(100), primary_key=True, index=True)
-    source: Mapped[QuestionSource] = mapped_column(
-        "SOURCE",
-        sqlEnum(QuestionSource),
-        nullable=False,
-    )
-    source_id: Mapped[str] = mapped_column("SOURCE_ID", String(100), index=True)
 
     question: Mapped[str] = mapped_column(
         "QUESTION",
@@ -27,6 +21,8 @@ class QNAModel(Base):
     )
 
     answer: Mapped[str] = mapped_column("ANSWER", Text, nullable=False)
+    flashcard_qna = relationship("FlashCardQnAModel", back_populates="qna", uselist=False)
+    quiz_qna = relationship("QuizQnAModel", back_populates="qna", uselist=False)
 
     __tablename__ = "QNA"
 
@@ -43,4 +39,4 @@ class QNAModel(Base):
         return "qna"
 
     def get_identifiers(self) -> List[Any]:
-        return [self.source, self.source_id, self.created_at]
+        return [self.question, self.created_at]

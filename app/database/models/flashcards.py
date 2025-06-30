@@ -1,21 +1,25 @@
 from datetime import datetime
 from typing import Any, List
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
 
 class FlashCardModel(Base):
+    __tablename__ = "FLASHCARDS"
+
     id: Mapped[str] = mapped_column("ID", String(100), primary_key=True, index=True)
-    user_id: Mapped[str] = mapped_column(  # created by user
+
+    user_id: Mapped[str] = mapped_column(
         "USER_ID",
         String(255),
         ForeignKey("USERS.ID"),
         nullable=False,
         index=True,
     )
-    file_id: Mapped[str] = mapped_column(  # created by user
+
+    file_id: Mapped[str] = mapped_column(
         "FILE_ID",
         String(255),
         ForeignKey("FILES.ID"),
@@ -23,7 +27,7 @@ class FlashCardModel(Base):
         index=True,
     )
 
-    __tablename__ = "FLASHCARDS"
+    flashcard_qna_items = relationship("FlashCardQnAModel", back_populates="flashcard")
 
     def __init__(self, **kw: Any):
         current_time = datetime.now()
