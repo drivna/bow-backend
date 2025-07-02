@@ -15,6 +15,11 @@ class FileModel(Base):
         nullable=False,
         index=True,
     )
+    file_hash: Mapped[str] = mapped_column(
+        "FILE_HASH",
+        Text,
+        nullable=False,
+    )
     file_name: Mapped[str] = mapped_column(
         "FILE_NAME",
         String(255),
@@ -47,4 +52,4 @@ class FileModel(Base):
         return "file"
 
     def get_identifiers(self) -> List[Any]:
-        return [self.uploaded_by, self.file_name, self.file_type]
+        return [self.uploaded_by, self.file_hash, self.file_type]

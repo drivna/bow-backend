@@ -7,7 +7,7 @@ import os
 from app.database.models.file import FileModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
-from app.utils.pdf_util import read_pdf_text
+from app.utils.pdf_util import get_file_hash, read_pdf_text
 
 file_api_ns = Namespace("files", description="APIs for file upload and parsing")
 
@@ -38,8 +38,9 @@ class FileParsingRoutes(Resource):
             filename = f"{uploaded_file.filename}_{datetime.now().timestamp()}"
 
             file_content = read_pdf_text(file_bytes)
+            file_hash = get_file_hash(file_content=file_content)
             file_object = FileModel(
-                uploaded_by=user_id, file_name=filename, file_content=file_content, file_type="pdf"
+                uploaded_by=user_id, file_name=filename,file_hash=file_hash, file_content=file_content, file_type="pdf"
             )
             saved_file: FileModel = ObjectRepository.insert_single_object(
                 object_to_be_inserted=file_object
