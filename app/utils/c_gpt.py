@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Dict, List
 import openai
 
@@ -6,7 +7,8 @@ import openai
 from app.utils.jwt_utils import create_token
 from app.utils.ws_util import send_to_socket
 
-openai.api_key = ""
+openai.api_key = ''
+
 
 
 def featch_and_stream_response_from_model(message_for_model: List[Dict[str, Any]], user_id: str):
@@ -47,7 +49,14 @@ def fetch_response_from_model(message_for_model: List[Dict[str, Any]]):
             messages=message_for_model,
             temperature=0.3,
         )
-        return json.loads(response["choices"][0]["message"]["content"])
+
+        content: str = response["choices"][0]["message"]["content"]
+        if content.startswith("```"):
+            content = re.sub(
+                r"^```(?:json)?\n|```$", "", content.strip(), flags=re.IGNORECASE | re.MULTILINE
+            ).strip()
+
+        return json.loads(content)
 
     except Exception as e:
         print(f"Error occurred: {e}")

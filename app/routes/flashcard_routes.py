@@ -1,4 +1,5 @@
 from typing import Any, List, Optional
+from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import ParseResult, RequestParser
 from sqlalchemy import and_
@@ -21,7 +22,7 @@ class FlashcardRoutes(Resource):
     def get(self):
         args: ParseResult = self.parser.parse_args()
         file_id: Optional[str] = args.get("fileId")
-        user_id: str = "user_17ae337cff"
+        user_id: str = request.user_id
 
         flashcard_filters = [FlashCardModel.user_id == user_id]
         if file_id:

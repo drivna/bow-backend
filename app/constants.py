@@ -231,17 +231,16 @@ class ChatGptPrompts:
     def get_quiz_generation_prompt_with_model_name(
         cls,
         pdf_text: str,
-        difficulty: str,
         topics: List[str] = None,
         previous_questions: List[str] = None,
         previous_quiz_names: List[str] = None,
     ) -> str:
         """
-        Constructs a prompt to generate a quiz with questions and a unique quiz name suggested by the model.
+        Constructs a prompt to generate a quiz with 15 questions (5 each of easy, medium, and hard),
+        and a unique quiz name suggested by the model.
 
         Args:
             pdf_text (str): Full extracted PDF content.
-            difficulty (str): One of 'easy', 'medium', 'hard'.
             topics (list, optional): Topics to restrict question generation to.
             previous_questions (list, optional): Previously asked questions to avoid.
             previous_quiz_names (list, optional): List of past quiz names to avoid repetition.
@@ -272,43 +271,52 @@ class ChatGptPrompts:
         )
 
         prompt = f"""
-            You are an experienced teacher and exam creator.
+    You are an experienced teacher and exam creator.
 
-            Using the study material provided below, perform the following:
+    Using the study material provided below, perform the following:
 
-            1. Suggest a unique and meaningful name for this quiz. {prev_name_instruction}
-            2. Generate exactly 5 multiple-choice questions of **{difficulty}** difficulty, {topics_instruction}.
+    1. Suggest a unique and meaningful name for this quiz. {prev_name_instruction}
+    2. Generate exactly 15 multiple-choice questions:
+        - 5 of **easy** difficulty
+        - 5 of **medium** difficulty
+        - 5 of **hard** difficulty
+        All questions should be {topics_instruction}
 
-            Each question must follow these rules:
-            - 4 options labeled 1, 2, 3, 4.
-            - One or more options may be correct. Return correct answers as a list, like [1] or [2, 4].
+    Each question must follow these rules:
+    - 4 options labeled 1, 2, 3, 4.
+    - One or more options may be correct. Return correct answers as a list, like [1] or [2, 4].
 
-            Format your response as valid JSON like this:
+    Format your response as valid JSON like this:
 
-            {{
-            "quiz_name": "Meaningful Unique Title",
-            "questions": [
-                {{
-                "question": "What is the capital of France?",
-                "options": {{
-                    "1": "Paris",
-                    "2": "Berlin",
-                    "3": "Madrid",
-                    "4": "Rome"
-                }},
-                "correct_answer": [1],
-                "difficulty": "{difficulty}"
-                }}
-            ]
-            }}
+    {{
+    "quiz_name": "Meaningful Unique Title",
+    "questions": [
+        {{
+        "question": "What is the capital of France?",
+        "options": {{
+            "1": "Paris",
+            "2": "Berlin",
+            "3": "Madrid",
+            "4": "Rome"
+        }},
+        "correct_answer": [1],
+        "difficulty": "easy"
+        }},
+        ...
+    ]
+    }}
 
-            {prev_qs_instruction}
+    {prev_qs_instruction}
 
-            Study Material:
-            \"\"\"
-            {pdf_text}
-            \"\"\"
-        """
+    Study Material:
+    \"\"\"
+    {pdf_text}
+    \"\"\"
+
+    NOTE:
+    - Only return valid JSON.
+    - All text must be in English.
+    """
 
         return prompt.strip()
 

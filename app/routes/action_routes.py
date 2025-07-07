@@ -1,3 +1,4 @@
+from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import ParseResult, RequestParser
 from loguru import logger
@@ -8,14 +9,17 @@ from app.database import query_manager
 from app.database.models.file import FileModel
 from app.database.models.flashcard_qna import FlashCardQnAModel
 from app.database.models.flashcards import FlashCardModel
-from app.database.models.qna import QNAModel, QuestionSource
 from app.database.models.quiz import QuizModel
 from app.database.object_repository import ObjectRepository
 from app.utils.c_gpt import featch_and_stream_response_from_model, fetch_response_from_model
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.utils.qna_util import insert_flashcard_qna_in_db
-from app.utils.quiz_util import create_new_quiz_in_db, generate_quiz_for_difficulty
+from app.utils.quiz_util import (
+    create_new_quiz_in_db,
+    generate_quiz_for_difficulty,
+    get_all_questions_generated_for_file,
+)
 
 action_api_ns = Namespace("action", description="APIs for actions")
 
@@ -55,7 +59,7 @@ class ActionSummaryRoutes(Resource):
             )
 
         featch_and_stream_response_from_model(
-            message_for_model=message_for_model, user_id="user_17ae337cff"
+            message_for_model=message_for_model, user_id=request.user_id
         )
 
         return {}
@@ -70,7 +74,7 @@ class ActionFlashCardRoutes(Resource):
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
-        user_id: str = "user_17ae337cff"
+        user_id: str = request.user_id
 
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
@@ -123,17 +127,31 @@ class ActionQuizRoutes(Resource):
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
-        user_id: str = "user_17ae337cff"
+        user_id: str = request.user_id
 
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
         )
 
-        for difficulty in ['easy', 'medium','hard']:
-            response = generate_quiz_for_difficulty(file_content=file_object.file_content, difficulty=difficulty)
+        (
+            existing_questions_of_quiz_for_file,
+            existing_quiz_names,
+        ) = get_all_questions_generated_for_file(file_id=file_id)
+
+        response = generate_quiz_for_difficulty(
+            file_content=file_object.file_content,
+            prev_quiz_names=existing_quiz_names,
+            prev_questions=existing_questions_of_quiz_for_file,
+        )
+        quiz_name: Optional[str] = response.get("quiz_name", None)
+        if quiz_name is not None:
+            quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
+            created_quiz: QuizModel = ObjectRepository.insert_single_object(
+                object_to_be_inserted=quiz, without_upsert_call=True
+            )
 
             create_new_quiz_in_db(
-                user_id=user_id, quiz_data=response, file_id=file_id
+                user_id=user_id, quiz_data=response, file_id=file_id, quiz_id=created_quiz.id
             )
 
         return {

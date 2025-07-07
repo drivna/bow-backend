@@ -7,10 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 
-class QuestionSource(Enum):
-    FLASHCARDS = "FLASHCARDS"
-
-
 class QNAModel(Base):
     id: Mapped[str] = mapped_column("ID", String(100), primary_key=True, index=True)
 
@@ -39,4 +35,4 @@ class QNAModel(Base):
         return "qna"
 
     def get_identifiers(self) -> List[Any]:
-        return [self.question, self.created_at]
+        return [self.question, self.answer, self.created_at]

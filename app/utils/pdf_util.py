@@ -11,6 +11,5 @@ def read_pdf_text(file_bytes) -> list[str]:
     return text_pages
 
 
-
 def get_file_hash(file_content: bytes) -> str:
     return hashlib.sha256(file_content).hexdigest()

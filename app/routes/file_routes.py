@@ -40,7 +40,11 @@ class FileParsingRoutes(Resource):
             file_content = read_pdf_text(file_bytes)
             file_hash = get_file_hash(file_content=file_content)
             file_object = FileModel(
-                uploaded_by=user_id, file_name=filename,file_hash=file_hash, file_content=file_content, file_type="pdf"
+                uploaded_by=user_id,
+                file_name=filename,
+                file_hash=file_hash,
+                file_content=file_content,
+                file_type="pdf",
             )
             saved_file: FileModel = ObjectRepository.insert_single_object(
                 object_to_be_inserted=file_object

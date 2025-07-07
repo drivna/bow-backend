@@ -42,11 +42,20 @@ class QuizQnAModel(Base):
 
     def __init__(self, **kw: Any):
         current_time = datetime.now()
-        kwargs = {key: value for key, value in kw.items() if key in self.__dir__()}
-        kwargs.setdefault("created_at", current_time)
-        kwargs.setdefault("updated_at", current_time)
-        kwargs.setdefault("id", self.compute_and_get_id())
-        super().__init__(**kwargs)
+
+        for key, value in kw.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
+        if not hasattr(self, "created_at") or self.created_at is None:
+            self.created_at = current_time
+        if not hasattr(self, "updated_at") or self.updated_at is None:
+            self.updated_at = current_time
+
+        if not hasattr(self, "id") or self.id is None:
+            self.id = self.compute_and_get_id()
+
+        super().__init__()
 
     def get_identifiers(self) -> List[Any]:
         return [self.quiz_id, self.created_at]

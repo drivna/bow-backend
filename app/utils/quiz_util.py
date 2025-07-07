@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional
+import json
+from typing import Any, Dict, List, Optional, Tuple
 import random
 from sqlalchemy.orm import Session
 
@@ -17,15 +18,8 @@ from sqlalchemy.orm import joinedload
 from app.utils.c_gpt import fetch_response_from_model
 
 
-def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str, quiz_id:Optional[str]=None):
-    if quiz_id is None:
-        quiz_name: Optional[str] = quiz_data.get("quiz_name", None)
-        if quiz_name is None:
-            return None
-
-        quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
-        created_quiz: QuizModel = ObjectRepository.insert_single_object(quiz)
-        quiz_id = created_quiz.id
+def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str, quiz_id: str):
+    logger.info(f"Creating quiz in db for user_id:{user_id}, file_id:{file_id}, quiz_id: {quiz_id}")
 
     for question_answer in quiz_data.get("questions", []):
         question: str = question_answer.get("question")
@@ -39,12 +33,12 @@ def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str,
         quiz_qna: QuizQnAModel = QuizQnAModel(
             quiz_id=quiz_id,
             difficulty=DifficultyLevel[difficulty.upper()],
-            options=options,
+            options=json.dumps(options),
             id=qna.id,
         )
-        ObjectRepository.insert_single_object(quiz_qna)
+        ObjectRepository.insert_single_object(quiz_qna, without_upsert_call=True)
 
-    return quiz
+    return
 
 
 def get_next_question(
@@ -268,7 +262,7 @@ def fetch_next_question_in_quiz(quiz_id: str):
 
 
 def check_and_generate_more_questions(
-    file_content:str,
+    file_content: str,
     total_questions_served,
     easy_questions,
     medium_questions,
@@ -276,12 +270,21 @@ def check_and_generate_more_questions(
     correct_streak,
     last_difficulty,
 ):
-    difficulty_bucket_to_generate: Optional[str] = should_generate_more_questions(total_questions_served=total_questions_served, easy_questions=easy_questions, medium_questions=medium_questions, hard_questions=hard_questions, correct_streak=correct_streak, last_difficulty=last_difficulty)
-    
+    difficulty_bucket_to_generate: Optional[str] = should_generate_more_questions(
+        total_questions_served=total_questions_served,
+        easy_questions=easy_questions,
+        medium_questions=medium_questions,
+        hard_questions=hard_questions,
+        correct_streak=correct_streak,
+        last_difficulty=last_difficulty,
+    )
+
     if not difficulty_bucket_to_generate:
         return
-    
-    generate_quiz_for_difficulty(file_content=file_content, difficulty=difficulty_bucket_to_generate)
+
+    generate_quiz_for_difficulty(
+        file_content=file_content, difficulty=difficulty_bucket_to_generate
+    )
 
     return
 
@@ -331,13 +334,84 @@ def should_generate_more_questions(
     return None
 
 
-def generate_quiz_for_difficulty(file_content:str, difficulty:str):
+def generate_quiz_for_difficulty(
+    file_content: str, prev_questions: List[str], prev_quiz_names: List[str]
+):
     system_prompt_for_quiz_agent = ChatGptPrompts.get_quiz_generation_prompt_with_model_name(
-            pdf_text=file_content, difficulty=difficulty
-        )
+        pdf_text=file_content,
+        previous_questions=prev_questions,
+        previous_quiz_names=prev_quiz_names,
+    )
     message_for_model = ChatGptMessagePayload.get_message_payload_for_quiz(
         prompt=system_prompt_for_quiz_agent,
     )
     response = fetch_response_from_model(message_for_model=message_for_model)
 
+    return response
+
+
+def get_all_questions_generated_for_file(file_id: str) -> Tuple[List[str], List[str]]:
+    quiz_list: List[QuizModel] = query_manager.query_with_filter(
+        model=QuizModel, filters=(QuizModel.file_id == file_id)
+    )
+    questions: List[str] = []
+    quiz_names: List[str] = []
+    for quiz in quiz_list:
+        quiz_names.append(quiz.quiz_name)
+        e_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+            model=QuizQnAModel,
+            filters=and_(
+                QuizQnAModel.quiz_id == quiz.id,
+                QuizQnAModel.difficulty == DifficultyLevel.EASY,
+                QuizQnAModel.is_given_to_user == False,
+                QuizQnAModel.is_answered == False,
+            ),
+            options=[joinedload(QuizQnAModel.qna)],
+        )
+        m_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+            model=QuizQnAModel,
+            filters=and_(
+                QuizQnAModel.quiz_id == quiz.id,
+                QuizQnAModel.difficulty == DifficultyLevel.MEDIUM,
+                QuizQnAModel.is_given_to_user == False,
+                QuizQnAModel.is_answered == False,
+            ),
+            options=[joinedload(QuizQnAModel.qna)],
+        )
+        h_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+            model=QuizQnAModel,
+            filters=and_(
+                QuizQnAModel.quiz_id == quiz.id,
+                QuizQnAModel.difficulty == DifficultyLevel.HARD,
+                QuizQnAModel.is_given_to_user == False,
+                QuizQnAModel.is_answered == False,
+            ),
+            options=[joinedload(QuizQnAModel.qna)],
+        )
+
+        for q in e_quiz_qna_list:
+            qna: QNAModel = q.qna
+            questions.append(qna.question)
+
+        for q in m_quiz_qna_list:
+            qna: QNAModel = q.qna
+            questions.append(qna.question)
+
+        for q in h_quiz_qna_list:
+            qna: QNAModel = q.qna
+            questions.append(qna.question)
+
+    return questions, quiz_names
+
+
+def format_quiz_qna_for_response(question: QuizQnAModel):
+    question_qna: QNAModel = question.qna
+
+    response: Dict[str, Any] = {
+        "question": question_qna.question,
+        "answer": question_qna.answer,
+        "options": question.options,
+        "difficulty": question.difficulty.value,
+        "qna_id": question_qna.id,
+    }
     return response

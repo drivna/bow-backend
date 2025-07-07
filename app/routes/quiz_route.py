@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Optional
+from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import ParseResult, RequestParser
-from sqlalchemy import and_
+from sqlalchemy import and_, cast, not_
 from sqlalchemy.orm import joinedload
 from app.database import query_manager
 from app.database.models.flashcards import FlashCardModel
@@ -15,9 +16,11 @@ from app.database.models.quiz_qna import DifficultyLevel, QuizQnAModel
 from app.database.object_repository import ObjectRepository
 from app.utils.quiz_util import (
     fetch_next_question_in_quiz,
+    format_quiz_qna_for_response,
     update_quiz_question,
     update_quiz_summary,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 
 quiz_api_ns = Namespace("quiz", description="APIs for quiz")
 
@@ -26,16 +29,38 @@ quiz_api_ns = Namespace("quiz", description="APIs for quiz")
 class QuizRoutes(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("fileId", help="FileId", required=True)
+    parser.add_argument("quizType", help="QuizType", required=True)
 
     @quiz_api_ns.expect(parser)
     def get(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
-        user_id: str = "user_17ae337cff"
+        quiz_type: str = args.get("quizType")
+        user_id: str = request.user_id
+        if quiz_type not in ["new", "old"]:
+            return {
+                "error": None,
+                "message": "Invalid Quiz Type",
+                "data": [],
+            }, 400
 
-        quiz_for_file: List[QuizModel] = query_manager.query_with_filter(
-            model=QuizModel, filters=(QuizModel.file_id == file_id)
-        )
+        if quiz_type == "new":
+            quiz_for_file: List[QuizModel] = query_manager.query_with_filter(
+                model=QuizModel,
+                filters=and_(
+                    QuizModel.file_id == file_id,
+                    cast(QuizModel.quiz_summary, JSONB).contains({}),
+                    cast(QuizModel.quiz_summary, JSONB).contained_by({}),
+                ),
+            )
+        else:
+            quiz_for_file: List[QuizModel] = query_manager.query_with_filter(
+                model=QuizModel,
+                filters=and_(
+                    QuizModel.file_id == file_id,
+                    not_(cast(QuizModel.quiz_summary, JSONB).contained_by({})),
+                ),
+            )
 
         return {
             "error": None,
@@ -55,7 +80,7 @@ class QuizRoutes(Resource):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
         quiz_id: str = args.get("quizId")
-        user_id: str = "user_17ae337cff"
+        user_id: str = request.user_id
 
         question: QuizQnAModel = fetch_next_question_in_quiz(quiz_id=quiz_id)
 
@@ -95,7 +120,7 @@ class QuizAnswersRoutes(Resource):
         qna_id: str = args.get("qnaId")
         user_answer: str = args.get("userAnswer")
         time_taken: Optional[int] = args.get("timeTaken")
-        user_id: str = "user_17ae337cff"
+        user_id: str = request.user_id
 
         try:
             qna = ObjectRepository.get_object_by_id(model=QNAModel, object_id=qna_id)
@@ -143,7 +168,7 @@ class QuizAnswersRoutes(Resource):
                 time_taken=time_taken,
             )
 
-            ObjectRepository.insert_single_object(quiz_answer)
+            answer = ObjectRepository.insert_single_object(quiz_answer)
 
             update_quiz_question(question_id=quiz_qna.id, is_given_to_user=True, is_answered=True)
 
@@ -157,6 +182,8 @@ class QuizAnswersRoutes(Resource):
             # Updating quiz summary
             update_quiz_summary(quiz_id=quiz_id, user_id=user_id)
 
+            next_question_response = format_quiz_qna_for_response(question=next_question)
+
             return {
                 "error": None,
                 "message": "Answer submitted successfully",
@@ -164,7 +191,7 @@ class QuizAnswersRoutes(Resource):
                     "isCorrect": is_correct,
                     "correctAnswer": qna.answer,
                     "timeTaken": time_taken,
-                    "next_question": next_question,
+                    "next_question": next_question_response,
                 },
             }, 201
 
