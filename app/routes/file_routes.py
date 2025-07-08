@@ -35,9 +35,10 @@ class FileParsingRoutes(Resource):
 
         try:
             file_bytes = uploaded_file.read()
-            filename = f"{uploaded_file.filename}_{datetime.now().timestamp()}"
+            filename = f"{uploaded_file.filename}_{datetime.now().timestamp()}"  # NOTE: FIX THIS
 
             file_content = read_pdf_text(file_bytes)
+            file_content = [text.replace("\x00", "") for text in file_content]
             file_hash = get_file_hash(file_content=file_content)
             file_object = FileModel(
                 uploaded_by=user_id,
