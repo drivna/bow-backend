@@ -320,6 +320,24 @@ class ChatGptPrompts:
 
         return prompt.strip()
 
+    @classmethod
+    def get_topic_generation_prompt(cls):
+        system_prompt = """You are an expert assistant for analyzing academic PDFs. You will be given the full text of a multi-page academic PDF.
+
+        For each page, return exactly 2 key topics. Each topic should include:
+        - a two-word topic (e.g., "Cave Art")
+        - a one-sentence descriptive topic (e.g., "The rise of symbolic cave drawings among Upper Paleolithic humans"), length should not exceed 5 words
+
+        Respond with JSON in the following format:
+        {
+        "page_1": [
+            {"topic": "Cave Art", "description": "The rise of symbolic cave drawings among Upper Paleolithic humans"},
+            ...
+        ]
+        }
+        Only include pages that have meaningful content."""
+        return system_prompt
+
 
 class ChatGptMessagePayload:
     @classmethod
