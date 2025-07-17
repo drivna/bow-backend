@@ -39,7 +39,7 @@ class FileParsingRoutes(Resource):
                 "message": "Please attach a file in the request",
             }, 400
 
-        is_new_created_file:bool = True
+        is_new_created_file: bool = True
 
         try:
             file_bytes = uploaded_file.read()
@@ -56,9 +56,11 @@ class FileParsingRoutes(Resource):
                 file_type="pdf",
             )
             try:
-                file_exists = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_object.id)
+                file_exists = ObjectRepository.get_object_by_id(
+                    model=FileModel, object_id=file_object.id
+                )
                 if file_exists:
-                    is_new_created_file=False
+                    is_new_created_file = False
             except Exception:
                 pass
 
@@ -71,11 +73,9 @@ class FileParsingRoutes(Resource):
 
         if is_new_created_file is True:
             thread = threading.Thread(
-                target=generate_quiz_for_file,
-                kwargs={"file_id": saved_file.id, "user_id": user_id}
+                target=generate_quiz_for_file, kwargs={"file_id": saved_file.id, "user_id": user_id}
             )
             thread.start()
-
 
         return {
             "error": None,

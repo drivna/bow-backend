@@ -37,7 +37,7 @@ class QuizRoutes(Resource):
         file_id: str = args.get("fileId")
         quiz_type: str = args.get("quizType")
         # user_id: str = request.user_id
-        user_id: str = 'user_17ae337cff'
+        user_id: str = "user_17ae337cff"
 
         if quiz_type not in ["new", "old"]:
             return {
@@ -49,22 +49,18 @@ class QuizRoutes(Resource):
         if quiz_type == "new":
             filters = [
                 QuizModel.user_id == user_id,
-                cast(QuizModel.quiz_summary, JSONB).contains({}),
-                cast(QuizModel.quiz_summary, JSONB).contained_by({}),
+                QuizModel.has_started.is_(False),
             ]
             if file_id is not None:
-                filters.append(file_id)
+                filters.append(QuizModel.file_id == file_id)
             quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
                 model=QuizModel,
                 filters=and_(*tuple(filters)),
             )
         else:
-            filters = [
-                QuizModel.user_id == user_id,
-                not_(cast(QuizModel.quiz_summary, JSONB).contained_by({})),
-            ]
+            filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(True)]
             if file_id is not None:
-                filters.append(file_id)
+                filters.append(QuizModel.file_id == file_id)
             quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
                 model=QuizModel,
                 filters=and_(*tuple(filters)),
@@ -188,7 +184,7 @@ class QuizAnswersRoutes(Resource):
             )
 
             # Updating quiz summary
-            update_quiz_summary(quiz_id=quiz_id, user_id=user_id)
+            update_quiz_summary(quiz_id=quiz_id, user_id=user_id, has_started=True)
 
             next_question_response = format_quiz_qna_for_response(question=next_question)
 

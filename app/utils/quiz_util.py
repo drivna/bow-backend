@@ -7,6 +7,7 @@ from loguru import logger
 from sqlalchemy import and_
 from app.constants import LOW_POOL_THRESHOLD, ChatGptMessagePayload, ChatGptPrompts
 from app.database.models.file import FileModel
+from app.database.models.file_topics import FileTopicModel
 from app.database.query_manager import database_engine
 from app.database import query_manager
 from app.database.models.qna import QNAModel
@@ -18,32 +19,61 @@ from sqlalchemy.orm import joinedload
 
 from app.utils.c_gpt import fetch_response_from_model
 
-def generate_quiz_for_file(file_id:str, user_id:str):
+
+def generate_quiz_for_file(file_id: str, user_id: str):
     logger.info(f"Generating quiz for file_id:{file_id}")
-    file_object: FileModel = ObjectRepository.get_object_by_id(
-            model=FileModel, object_id=file_id
-        )
+    file_object: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
     (
         existing_questions_of_quiz_for_file,
         existing_quiz_names,
     ) = get_all_questions_generated_for_file(file_id=file_id)
 
-    response = generate_quiz_for_difficulty(
-        file_content=file_object.file_content,
-        prev_quiz_names=existing_quiz_names,
-        prev_questions=existing_questions_of_quiz_for_file,
-    )
-    quiz_name: Optional[str] = response.get("quiz_name", None)
-    if quiz_name is not None:
-        quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
-        created_quiz: QuizModel = ObjectRepository.insert_single_object(
-            object_to_be_inserted=quiz, without_upsert_call=True
+    def fetch_and_insert_quiz_in_db(topics: List[str]):
+        response = generate_quiz_for_difficulty(
+            file_content=file_object.file_content,
+            prev_quiz_names=existing_quiz_names,
+            prev_questions=existing_questions_of_quiz_for_file,
+            topics=topics,
         )
+        quiz_name: Optional[str] = response.get("quiz_name", None)
+        if quiz_name is not None:
+            quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
+            created_quiz: QuizModel = ObjectRepository.insert_single_object(
+                object_to_be_inserted=quiz, without_upsert_call=True
+            )
 
-        create_new_quiz_in_db(
-            user_id=user_id, quiz_data=response, file_id=file_id, quiz_id=created_quiz.id
-        )
-        logger.info(f"Generated quiz: {quiz.id} for file: {file_id}")
+            create_new_quiz_in_db(
+                user_id=user_id, quiz_data=response, file_id=file_id, quiz_id=created_quiz.id
+            )
+
+            update_quiz_summary(quiz_id=quiz.id, user_id=user_id)
+
+            logger.info(f"Generated quiz: {quiz.id} for file: {file_id}")
+
+    logger.info(f"Generating quiz for entire file: {file_id}")
+
+    fetch_and_insert_quiz_in_db(topics=[])
+
+    topics_for_file: List[FileTopicModel] = query_manager.query_with_filter(
+        model=FileTopicModel,
+        filters=(FileTopicModel.file_id == file_id,),
+        order_by=(FileTopicModel.page_number.desc()),
+    )
+    topics: List[str] = []
+    for topic in topics_for_file:
+        topics.append(topic.topic_description)
+
+    mid = len(topics) // 2
+    logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[:mid]}")
+
+    fetch_and_insert_quiz_in_db(topics=topics[:mid])
+
+    logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[mid:]}")
+
+    fetch_and_insert_quiz_in_db(topics=topics[mid:])
+
+    return
+
 
 def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str, quiz_id: str):
     logger.info(f"Creating quiz in db for user_id:{user_id}, file_id:{file_id}, quiz_id: {quiz_id}")
@@ -202,7 +232,7 @@ def get_quiz_summary(quiz_id: str, user_id: str) -> Dict[str, Any]:
     }
 
 
-def update_quiz_summary(quiz_id: str, user_id: str) -> None:
+def update_quiz_summary(quiz_id: str, user_id: str, has_started: bool = False) -> None:
     with Session(database_engine) as session:
         quiz: QuizModel = (
             session.query(QuizModel)
@@ -216,6 +246,9 @@ def update_quiz_summary(quiz_id: str, user_id: str) -> None:
 
         summary = get_quiz_summary(quiz_id=quiz_id, user_id=user_id)
         quiz.quiz_summary = summary
+
+        if has_started == True:
+            quiz.has_started = True
 
         session.commit()  # commits the changes
         logger.info(f"Updated quiz: {quiz_id} with summary: {summary}")
@@ -296,6 +329,7 @@ def check_and_generate_more_questions(
     hard_questions,
     correct_streak,
     last_difficulty,
+    topics,
 ):
     difficulty_bucket_to_generate: Optional[str] = should_generate_more_questions(
         total_questions_served=total_questions_served,
@@ -310,7 +344,7 @@ def check_and_generate_more_questions(
         return
 
     generate_quiz_for_difficulty(
-        file_content=file_content, difficulty=difficulty_bucket_to_generate
+        file_content=file_content, difficulty=difficulty_bucket_to_generate, topics=topics
     )
 
     return
@@ -362,12 +396,13 @@ def should_generate_more_questions(
 
 
 def generate_quiz_for_difficulty(
-    file_content: str, prev_questions: List[str], prev_quiz_names: List[str]
+    file_content: str, prev_questions: List[str], prev_quiz_names: List[str], topics: List[str]
 ):
     system_prompt_for_quiz_agent = ChatGptPrompts.get_quiz_generation_prompt_with_model_name(
         pdf_text=file_content,
         previous_questions=prev_questions,
         previous_quiz_names=prev_quiz_names,
+        topics=topics,
     )
     message_for_model = ChatGptMessagePayload.get_message_payload_for_quiz(
         prompt=system_prompt_for_quiz_agent,

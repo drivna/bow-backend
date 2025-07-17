@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
-from sqlalchemy import JSON, String, ForeignKey
+from sqlalchemy import JSON, Boolean, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
@@ -24,6 +24,8 @@ class QuizModel(Base):
         nullable=False,
     )
     quiz_summary: Mapped[Dict[str, Any]] = mapped_column("SUMMARY", JSON, default=dict)
+
+    has_started: Mapped[bool] = mapped_column("HAS_STARTED", Boolean, nullable=False)
 
     # Relationship to QuizQnAModel
     quiz_qna_items = relationship("QuizQnAModel", back_populates="quiz")
@@ -65,3 +67,4 @@ class QuizModel(Base):
             if hasattr(self, "updated_at") and self.updated_at
             else None,
         }
+
