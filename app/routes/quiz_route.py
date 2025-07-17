@@ -28,7 +28,7 @@ quiz_api_ns = Namespace("quiz", description="APIs for quiz")
 @quiz_api_ns.route("/list")
 class QuizRoutes(Resource):
     parser: RequestParser = RequestParser()
-    parser.add_argument("fileId", help="FileId", required=True)
+    parser.add_argument("fileId", help="FileId", required=False)
     parser.add_argument("quizType", help="QuizType", required=True)
 
     @quiz_api_ns.expect(parser)
@@ -36,7 +36,9 @@ class QuizRoutes(Resource):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
         quiz_type: str = args.get("quizType")
-        user_id: str = request.user_id
+        # user_id: str = request.user_id
+        user_id: str = 'user_17ae337cff'
+
         if quiz_type not in ["new", "old"]:
             return {
                 "error": None,
@@ -45,27 +47,33 @@ class QuizRoutes(Resource):
             }, 400
 
         if quiz_type == "new":
-            quiz_for_file: List[QuizModel] = query_manager.query_with_filter(
+            filters = [
+                QuizModel.user_id == user_id,
+                cast(QuizModel.quiz_summary, JSONB).contains({}),
+                cast(QuizModel.quiz_summary, JSONB).contained_by({}),
+            ]
+            if file_id is not None:
+                filters.append(file_id)
+            quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
                 model=QuizModel,
-                filters=and_(
-                    QuizModel.file_id == file_id,
-                    cast(QuizModel.quiz_summary, JSONB).contains({}),
-                    cast(QuizModel.quiz_summary, JSONB).contained_by({}),
-                ),
+                filters=and_(*tuple(filters)),
             )
         else:
-            quiz_for_file: List[QuizModel] = query_manager.query_with_filter(
+            filters = [
+                QuizModel.user_id == user_id,
+                not_(cast(QuizModel.quiz_summary, JSONB).contained_by({})),
+            ]
+            if file_id is not None:
+                filters.append(file_id)
+            quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
                 model=QuizModel,
-                filters=and_(
-                    QuizModel.file_id == file_id,
-                    not_(cast(QuizModel.quiz_summary, JSONB).contained_by({})),
-                ),
+                filters=and_(*tuple(filters)),
             )
 
         return {
             "error": None,
             "message": "Quiz generated successfully",
-            "data": [quiz.to_dict() for quiz in quiz_for_file],
+            "data": [quiz.to_dict() for quiz in quiz_list_for_user],
         }, 201
 
 

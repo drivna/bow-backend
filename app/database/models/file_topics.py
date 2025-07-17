@@ -16,17 +16,17 @@ class FileTopicModel(Base):
         nullable=False,
         index=True,
     )
-    page_number :  Mapped[str] = mapped_column(
+    page_number: Mapped[str] = mapped_column(
         "PAGE_NUMBER",
         String(255),
         nullable=False,
     )
-    topic_name : Mapped[str] = mapped_column(
+    topic_name: Mapped[str] = mapped_column(
         "TOPIC_NAME",
         Text,
         nullable=False,
     )
-    topic_description : Mapped[str] = mapped_column(
+    topic_description: Mapped[str] = mapped_column(
         "TOPIC_DESCRIPTION",
         Text,
         nullable=False,

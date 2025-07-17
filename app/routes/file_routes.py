@@ -29,7 +29,7 @@ class FileParsingRoutes(Resource):
     # @authenticate_user
     def post(self):
         uploaded_file = request.files.get("file")
-        user_id = 'user_17ae337cff'
+        user_id = "user_17ae337cff"
 
         if not uploaded_file:
             return {
@@ -70,46 +70,46 @@ class FileParsingRoutes(Resource):
         }, 201
 
 
-
-
 @file_api_ns.route("")
 class FileParsingRoutes(Resource):
     # @authenticate_user
     def post(self):
-        user_id = 'user_17ae337cff'
+        user_id = "user_17ae337cff"
 
-        files_of_user: List[FileModel] = query_manager.query_with_filter(model=FileModel, filters=(FileModel.uploaded_by == user_id), order_by=FileModel.updated_at.desc())
+        files_of_user: List[FileModel] = query_manager.query_with_filter(
+            model=FileModel,
+            filters=(FileModel.uploaded_by == user_id),
+            order_by=FileModel.updated_at.desc(),
+        )
 
-        response: List[Dict[str,Any]] =[]
+        response: List[Dict[str, Any]] = []
         for file in files_of_user:
-            
-            topics_and_pages_of_file : List[FileTopicModel] = query_manager.query_with_filter(model=FileTopicModel, filters=(FileTopicModel.file_id == file.id))
+            topics_and_pages_of_file: List[FileTopicModel] = query_manager.query_with_filter(
+                model=FileTopicModel, filters=(FileTopicModel.file_id == file.id)
+            )
 
-            topics_response_for_file: List[Dict[str,Any]] =[]
+            topics_response_for_file: List[Dict[str, Any]] = []
             for topic in topics_and_pages_of_file:
                 topic_res = {
-                    'id':topic.id,
-                    'page':topic.page_number,
-                    'topicName':topic.topic_name,
-                    'topicDescription':topic.topic_description
+                    "id": topic.id,
+                    "page": topic.page_number,
+                    "topicName": topic.topic_name,
+                    "topicDescription": topic.topic_description,
                 }
                 topics_response_for_file.append(topic_res)
 
             res = {
-                'id':file.id,
-                'name':file.file_name,
-                'file_type':file.file_type,
-                'uploaded_at':file.updated_at.isoformat(),
-                'topics':topics_response_for_file
+                "id": file.id,
+                "name": file.file_name,
+                "file_type": file.file_type,
+                "uploaded_at": file.updated_at.isoformat(),
+                "topics": topics_response_for_file,
             }
 
             response.append(res)
-        
 
         return {
             "error": None,
             "message": "File uploaded, saved and parsed successfully",
             "data": response,
         }, 201
-
-

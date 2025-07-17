@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from app.constants import ChatGptPrompts, ChatGptMessagePayload
 from app.database import query_manager
 from app.database.models.file import FileModel
+from app.database.models.file_topics import FileTopicModel
 from app.database.models.flashcard_qna import FlashCardQnAModel
 from app.database.models.flashcards import FlashCardModel
 from app.database.models.quiz import QuizModel
@@ -122,6 +123,7 @@ class ActionFlashCardRoutes(Resource):
 class ActionQuizRoutes(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("fileId", help="FileId", required=True)
+    parser.add_argument("topic", help="TopicId", required=False)
 
     @action_api_ns.expect(parser)
     def post(self):
@@ -129,10 +131,20 @@ class ActionQuizRoutes(Resource):
         file_id: str = args.get("fileId")
         user_id: str = request.user_id
 
+        topic: str = args.get("topic", "")
+        topics_list = topic.split(",")
+
+        topics_for_quiz: List[str] = []
+
+        for topic_id in topics_list:
+            topic_model: FileTopicModel = ObjectRepository.get_object_by_id(
+                model=FileTopicModel, object_id=topic_id
+            )
+            topics_for_quiz.append(topic_model.topic_description)
+
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
         )
-
         (
             existing_questions_of_quiz_for_file,
             existing_quiz_names,

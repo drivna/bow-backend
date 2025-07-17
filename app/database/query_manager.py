@@ -19,7 +19,7 @@ from .models.flashcard_qna import FlashCardQnAModel  # noqa: F401
 from .models.quiz import QuizModel  # noqa: F401
 from .models.quiz_qna import QuizQnAModel  # noqa: F401
 from .models.quiz_answers import QuizUserAnswersModel  # noqa: F401
-from .models.file_topics import FileTopicModel # noqa: F401
+from .models.file_topics import FileTopicModel  # noqa: F401
 
 Base.metadata.create_all(database_engine)
 
