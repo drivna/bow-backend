@@ -4,6 +4,7 @@ from flask_restx import Namespace, Resource
 from flask import request
 from werkzeug.datastructures import FileStorage
 import os
+import threading
 
 from app.database import query_manager
 from app.database.models.file import FileModel
@@ -11,6 +12,7 @@ from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
 from app.utils.pdf_util import get_file_hash, read_pdf_text
+from app.utils.quiz_util import generate_quiz_for_file
 from app.utils.topic_utils import generate_topics_for_file
 
 file_api_ns = Namespace("files", description="APIs for file upload and parsing")
@@ -37,6 +39,8 @@ class FileParsingRoutes(Resource):
                 "message": "Please attach a file in the request",
             }, 400
 
+        is_new_created_file:bool = True
+
         try:
             file_bytes = uploaded_file.read()
             filename = f"{uploaded_file.filename}_{datetime.now().timestamp()}"  # NOTE: FIX THIS
@@ -51,13 +55,27 @@ class FileParsingRoutes(Resource):
                 file_content=file_content,
                 file_type="pdf",
             )
+            try:
+                file_exists = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_object.id)
+                if file_exists:
+                    is_new_created_file=False
+            except Exception:
+                pass
+
             saved_file: FileModel = ObjectRepository.insert_single_object(
                 object_to_be_inserted=file_object
             )
-            generate_topics_for_file(file_content=file_content, file_id=saved_file.id)
 
         except Exception as e:
             return {"error": str(e), "message": "Failed to save the file"}, 500
+
+        if is_new_created_file is True:
+            thread = threading.Thread(
+                target=generate_quiz_for_file,
+                kwargs={"file_id": saved_file.id, "user_id": user_id}
+            )
+            thread.start()
+
 
         return {
             "error": None,

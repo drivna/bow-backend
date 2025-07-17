@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from loguru import logger
 from sqlalchemy import and_
 from app.constants import LOW_POOL_THRESHOLD, ChatGptMessagePayload, ChatGptPrompts
+from app.database.models.file import FileModel
 from app.database.query_manager import database_engine
 from app.database import query_manager
 from app.database.models.qna import QNAModel
@@ -17,6 +18,32 @@ from sqlalchemy.orm import joinedload
 
 from app.utils.c_gpt import fetch_response_from_model
 
+def generate_quiz_for_file(file_id:str, user_id:str):
+    logger.info(f"Generating quiz for file_id:{file_id}")
+    file_object: FileModel = ObjectRepository.get_object_by_id(
+            model=FileModel, object_id=file_id
+        )
+    (
+        existing_questions_of_quiz_for_file,
+        existing_quiz_names,
+    ) = get_all_questions_generated_for_file(file_id=file_id)
+
+    response = generate_quiz_for_difficulty(
+        file_content=file_object.file_content,
+        prev_quiz_names=existing_quiz_names,
+        prev_questions=existing_questions_of_quiz_for_file,
+    )
+    quiz_name: Optional[str] = response.get("quiz_name", None)
+    if quiz_name is not None:
+        quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
+        created_quiz: QuizModel = ObjectRepository.insert_single_object(
+            object_to_be_inserted=quiz, without_upsert_call=True
+        )
+
+        create_new_quiz_in_db(
+            user_id=user_id, quiz_data=response, file_id=file_id, quiz_id=created_quiz.id
+        )
+        logger.info(f"Generated quiz: {quiz.id} for file: {file_id}")
 
 def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str, quiz_id: str):
     logger.info(f"Creating quiz in db for user_id:{user_id}, file_id:{file_id}, quiz_id: {quiz_id}")

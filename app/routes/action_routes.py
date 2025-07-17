@@ -19,6 +19,7 @@ from app.utils.qna_util import insert_flashcard_qna_in_db
 from app.utils.quiz_util import (
     create_new_quiz_in_db,
     generate_quiz_for_difficulty,
+    generate_quiz_for_file,
     get_all_questions_generated_for_file,
 )
 
@@ -142,29 +143,7 @@ class ActionQuizRoutes(Resource):
             )
             topics_for_quiz.append(topic_model.topic_description)
 
-        file_object: FileModel = ObjectRepository.get_object_by_id(
-            model=FileModel, object_id=file_id
-        )
-        (
-            existing_questions_of_quiz_for_file,
-            existing_quiz_names,
-        ) = get_all_questions_generated_for_file(file_id=file_id)
-
-        response = generate_quiz_for_difficulty(
-            file_content=file_object.file_content,
-            prev_quiz_names=existing_quiz_names,
-            prev_questions=existing_questions_of_quiz_for_file,
-        )
-        quiz_name: Optional[str] = response.get("quiz_name", None)
-        if quiz_name is not None:
-            quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
-            created_quiz: QuizModel = ObjectRepository.insert_single_object(
-                object_to_be_inserted=quiz, without_upsert_call=True
-            )
-
-            create_new_quiz_in_db(
-                user_id=user_id, quiz_data=response, file_id=file_id, quiz_id=created_quiz.id
-            )
+        generate_quiz_for_file(file_id=file_id, user_id=user_id)
 
         return {
             "error": None,
