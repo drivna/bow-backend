@@ -56,7 +56,7 @@ def generate_quiz_for_file(file_id: str, user_id: str):
 
     topics_for_file: List[FileTopicModel] = query_manager.query_with_filter(
         model=FileTopicModel,
-        filters=(FileTopicModel.file_id == file_id,),
+        filters=(FileTopicModel.file_id == file_id),
         order_by=(FileTopicModel.page_number.desc()),
     )
     topics: List[str] = []

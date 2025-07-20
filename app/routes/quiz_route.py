@@ -42,7 +42,7 @@ class QuizRoutes(Resource):
         if quiz_type not in ["new", "old"]:
             return {
                 "error": None,
-                "message": "Invalid Quiz Type",
+                "message": "Invalid Quiz Type", 
                 "data": [],
             }, 400
 

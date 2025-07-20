@@ -70,12 +70,13 @@ class FileParsingRoutes(Resource):
 
         except Exception as e:
             return {"error": str(e), "message": "Failed to save the file"}, 500
-
-        if is_new_created_file is True:
-            thread = threading.Thread(
-                target=generate_quiz_for_file, kwargs={"file_id": saved_file.id, "user_id": user_id}
-            )
-            thread.start()
+        
+        # if is_new_created_file is True:
+        generate_topics_for_file(file_content=file_object.file_content,file_id=file_object.id)
+        thread = threading.Thread(
+            target=generate_quiz_for_file, kwargs={"file_id": saved_file.id, "user_id": user_id}
+        )
+        thread.start()
 
         return {
             "error": None,

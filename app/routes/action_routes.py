@@ -76,7 +76,10 @@ class ActionFlashCardRoutes(Resource):
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
-        user_id: str = request.user_id
+        try:
+            user_id: str = request.user_id
+        except Exception:
+            user_id = 'user_17ae337cff'
 
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id

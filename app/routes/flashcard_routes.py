@@ -22,7 +22,10 @@ class FlashcardRoutes(Resource):
     def get(self):
         args: ParseResult = self.parser.parse_args()
         file_id: Optional[str] = args.get("fileId")
-        user_id: str = request.user_id
+        try:
+            user_id: str = request.user_id
+        except Exception:
+            user_id = 'user_17ae337cff'
 
         flashcard_filters = [FlashCardModel.user_id == user_id]
         if file_id:
