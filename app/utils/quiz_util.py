@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from loguru import logger
 from sqlalchemy import and_
-from app.constants import LOW_POOL_THRESHOLD, ChatGptMessagePayload, ChatGptPrompts
+from app.constants import LOW_POOL_THRESHOLD, TOTAL_QUIZ_QUESTIONS, ChatGptMessagePayload, ChatGptPrompts
 from app.database.models.file import FileModel
 from app.database.models.file_topics import FileTopicModel
 from app.database.query_manager import database_engine
@@ -220,7 +220,7 @@ def get_quiz_summary(quiz_id: str, user_id: str) -> Dict[str, Any]:
     return {
         "quizId": quiz_id,
         "quizName": quiz.quiz_name,
-        "totalQuestions": total_questions,
+        "totalQuestions": TOTAL_QUIZ_QUESTIONS,
         "answeredQuestions": answered_questions,
         "correctAnswers": correct_answers,
         "incorrectAnswers": incorrect_answers,
@@ -229,6 +229,7 @@ def get_quiz_summary(quiz_id: str, user_id: str) -> Dict[str, Any]:
         "isCompleted": is_completed,
         "summary": summary,
         "current_streak": current_streak,
+        "questionsSeenByUser":total_questions
     }
 
 
@@ -245,17 +246,55 @@ def update_quiz_summary(quiz_id: str, user_id: str, has_started: bool = False) -
             return
 
         summary = get_quiz_summary(quiz_id=quiz_id, user_id=user_id)
+        summary['totalQuestions'] = TOTAL_QUIZ_QUESTIONS
         quiz.quiz_summary = summary
 
         if has_started == True:
             quiz.has_started = True
+        
 
         session.commit()  # commits the changes
         logger.info(f"Updated quiz: {quiz_id} with summary: {summary}")
 
+def fetch_all_questions_with_difficulty_for_quiz(quiz_id:str):
+    e_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+        model=QuizQnAModel,
+        filters=and_(
+            QuizQnAModel.quiz_id == quiz_id,
+            QuizQnAModel.difficulty == DifficultyLevel.EASY,
+            QuizQnAModel.is_given_to_user == False,
+            QuizQnAModel.is_answered.is_(False),
+        ),
+        options=[joinedload(QuizQnAModel.qna)],
+    )
+    m_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+        model=QuizQnAModel,
+        filters=and_(
+            QuizQnAModel.quiz_id == quiz_id,
+            QuizQnAModel.difficulty == DifficultyLevel.MEDIUM,
+            QuizQnAModel.is_given_to_user == False,
+            QuizQnAModel.is_answered.is_(False),
+        ),
+        options=[joinedload(QuizQnAModel.qna)],
+    )
+    h_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
+        model=QuizQnAModel,
+        filters=and_(
+            QuizQnAModel.quiz_id == quiz_id,
+            QuizQnAModel.difficulty == DifficultyLevel.HARD,
+            QuizQnAModel.is_given_to_user == False,
+            QuizQnAModel.is_answered.is_(False),
+        ),
+        options=[joinedload(QuizQnAModel.qna)],
+    )
+
+    return e_quiz_qna_list, m_quiz_qna_list, h_quiz_qna_list
+
+def update_all_questions_for_quiz(quiz_id:str, except_qna_id:str):
+    query_manager.update_objects(model=QuizQnAModel, filters=and_(QuizQnAModel.quiz_id == quiz_id, QuizQnAModel.id == except_qna_id), updates={'is_latest_given_question_to_user':False})
 
 def update_quiz_question(
-    question_id: str, is_given_to_user: bool = False, is_answered: bool = False
+    question_id: str, is_given_to_user: bool = False, is_answered: bool = False, is_latest_question_given_to_user : bool = False
 ):
     with Session(database_engine) as session:
         quiz_qna: QuizQnAModel = (
@@ -270,45 +309,64 @@ def update_quiz_question(
 
         quiz_qna.is_given_to_user = is_given_to_user
         quiz_qna.is_answered = is_answered
+        if is_latest_question_given_to_user:
+            quiz_qna.is_latest_given_question_to_user = True
 
         session.commit()  # commits the changes
         logger.info(
             f"Updated quiz_qna: {question_id} with is_answered: {is_answered}, is_given_to_user: {is_given_to_user}"
         )
 
+def get_total_count_of_questions_given_to_user(quiz_id:str):
+    quiz_qnas: List[QuizQnAModel] = query_manager.query_with_filter( #change this to count later
+        model=QuizQnAModel,
+        filters=and_(QuizQnAModel.quiz_id == quiz_id, QuizQnAModel.is_given_to_user == True),
+        options=[joinedload(QuizQnAModel.qna)],
+    )
+    return len(quiz_qnas)
+
+def check_and_fetch_latest_question_for_quiz(quiz_id:str):
+    quiz_qnas: List[QuizQnAModel] = query_manager.query_with_filter( #change this to count later
+        model=QuizQnAModel,
+        filters=and_(QuizQnAModel.quiz_id == quiz_id, QuizQnAModel.is_given_to_user == True, QuizQnAModel.is_latest_given_question_to_user == True),
+        options=[joinedload(QuizQnAModel.qna)],
+    )
+    if not quiz_qnas:
+        return fetch_next_question_in_quiz(quiz_id=quiz_id)
+
+    quiz_qna: QNAModel = quiz_qnas[0].qna
+    user_answer = query_manager.query_with_filter(model=QuizUserAnswersModel, filters=(QuizUserAnswersModel.qna_id == quiz_qna.id))
+
+    is_last_question: bool = False
+    if not user_answer:
+        total_count_of_questions_seen_by_user = get_total_count_of_questions_given_to_user(quiz_id=quiz_id)
+        if total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS:
+            is_last_question = True
+
+        return quiz_qnas[0], is_last_question
+    
+
+    return fetch_next_question_in_quiz(quiz_id=quiz_id)
+
 
 def fetch_next_question_in_quiz(quiz_id: str):
-    quiz: QuizModel = ObjectRepository.get_object_by_id(model=QuizModel, object_id=quiz_id)
-    e_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
-        model=QuizQnAModel,
-        filters=and_(
-            QuizQnAModel.quiz_id == quiz.id,
-            QuizQnAModel.difficulty == DifficultyLevel.EASY,
-            QuizQnAModel.is_given_to_user == False,
-            # is_answered=False,
-        ),
-        options=[joinedload(QuizQnAModel.qna)],
-    )
-    m_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
-        model=QuizQnAModel,
-        filters=and_(
-            QuizQnAModel.quiz_id == quiz.id,
-            QuizQnAModel.difficulty == DifficultyLevel.MEDIUM,
-            QuizQnAModel.is_given_to_user == False,
-            # is_answered=False,
-        ),
-        options=[joinedload(QuizQnAModel.qna)],
-    )
-    h_quiz_qna_list: List[QuizQnAModel] = query_manager.query_with_filter(
-        model=QuizQnAModel,
-        filters=and_(
-            QuizQnAModel.quiz_id == quiz.id,
-            QuizQnAModel.difficulty == DifficultyLevel.HARD,
-            QuizQnAModel.is_given_to_user == False,
-            # QuizQnAModel,is_answered=False,
-        ),
-        options=[joinedload(QuizQnAModel.qna)],
-    )
+    total_count_of_questions_seen_by_user = get_total_count_of_questions_given_to_user(quiz_id=quiz_id)
+    
+    logger.info(f"Total questions given to user till now is {total_count_of_questions_seen_by_user}, status: {total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS // 2}")
+    is_last_question = False
+    if total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS // 2:
+        logger.info('Reached second last question')
+        is_last_question = True
+    
+    elif total_count_of_questions_seen_by_user == TOTAL_QUIZ_QUESTIONS:
+        return None, None
+        
+
+    e_quiz_qna_list: List[QuizQnAModel]
+    m_quiz_qna_list: List[QuizQnAModel]
+    h_quiz_qna_list: List[QuizQnAModel]
+
+    e_quiz_qna_list, m_quiz_qna_list, h_quiz_qna_list = fetch_all_questions_with_difficulty_for_quiz(quiz_id=quiz_id)
 
     question: QuizQnAModel = get_next_question(
         correct_streak=0,
@@ -318,19 +376,37 @@ def fetch_next_question_in_quiz(quiz_id: str):
         hard_questions=h_quiz_qna_list,
     )
 
-    return question
+    return question, is_last_question
 
 
 def check_and_generate_more_questions(
-    file_content: str,
-    total_questions_served,
-    easy_questions,
-    medium_questions,
-    hard_questions,
-    correct_streak,
     last_difficulty,
-    topics,
+    quiz_id:str,
 ):
+    total_questions_served = get_total_count_of_questions_given_to_user(quiz_id=quiz_id)
+    quiz: QuizModel = ObjectRepository.get_object_by_id(model=QuizModel, object_id=quiz_id)
+    summary = quiz.quiz_summary
+    correct_streak = summary.get('current_streak', 0)
+
+
+    file :FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=quiz.file_id)
+    file_content = file.file_content
+
+    easy_questions, medium_questions, hard_questions = fetch_all_questions_with_difficulty_for_quiz(quiz_id=quiz_id)
+
+    prev_questions = []
+
+    file_topics : List[FileTopicModel]= query_manager.query_with_filter(
+        model=FileTopicModel,
+        filters=(FileTopicModel.file_id == file.id),
+        order_by=(FileTopicModel.page_number.desc()),
+    )
+    topics: List[str] = []
+    for topic in file_topics:
+        topics.append(topic.topic_description)
+    
+
+    
     difficulty_bucket_to_generate: Optional[str] = should_generate_more_questions(
         total_questions_served=total_questions_served,
         easy_questions=easy_questions,
@@ -343,8 +419,14 @@ def check_and_generate_more_questions(
     if not difficulty_bucket_to_generate:
         return
 
+    (
+        existing_questions_of_quiz_for_file,
+        existing_quiz_names,
+    ) = get_all_questions_generated_for_file(file_id=file.id)
+
+
     generate_quiz_for_difficulty(
-        file_content=file_content, difficulty=difficulty_bucket_to_generate, topics=topics
+        file_content=file_content, topics=topics, prev_questions=existing_questions_of_quiz_for_file, prev_quiz_names=existing_quiz_names
     )
 
     return

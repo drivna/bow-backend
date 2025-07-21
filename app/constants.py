@@ -425,4 +425,5 @@ class ChatGptMessagePayload:
         ]
 
 
-LOW_POOL_THRESHOLD: int = 1
+LOW_POOL_THRESHOLD: int = 2
+TOTAL_QUIZ_QUESTIONS:int=10

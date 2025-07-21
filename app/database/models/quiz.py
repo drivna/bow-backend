@@ -25,7 +25,7 @@ class QuizModel(Base):
     )
     quiz_summary: Mapped[Dict[str, Any]] = mapped_column("SUMMARY", JSON, default=dict)
 
-    has_started: Mapped[bool] = mapped_column("HAS_STARTED", Boolean, nullable=False)
+    has_started: Mapped[bool] = mapped_column("HAS_STARTED", Boolean, nullable=False, default=False)
 
     # Relationship to QuizQnAModel
     quiz_qna_items = relationship("QuizQnAModel", back_populates="quiz")
@@ -54,12 +54,14 @@ class QuizModel(Base):
         return [self.user_id, self.file_id, self.created_at, self.quiz_name]
 
     def to_dict(self) -> Dict[str, Any]:
+        quiz_summary = self.quiz_summary or {}
+        quiz_summary['totalQuestions'] = 10
         return {
             "id": self.id,
             "user_id": self.user_id,
             "file_id": self.file_id,
             "quiz_name": self.quiz_name,
-            "quiz_summary": self.quiz_summary or {},
+            "quiz_summary": quiz_summary,
             "created_at": self.created_at.isoformat()
             if hasattr(self, "created_at") and self.created_at
             else None,
