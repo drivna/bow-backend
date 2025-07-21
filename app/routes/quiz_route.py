@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import ParseResult, RequestParser
+from loguru import logger
 from sqlalchemy import and_, cast, not_
 from sqlalchemy.orm import joinedload
 from app.database import query_manager
@@ -20,6 +21,8 @@ from app.utils.quiz_util import (
     check_and_fetch_latest_question_for_quiz,
     check_and_generate_more_questions,
     format_quiz_qna_for_response,
+    get_list_of_quiz,
+    handle_answer_and_generate_new_question_for_quiz,
     update_all_questions_for_quiz,
     update_quiz_question,
     update_quiz_summary,
@@ -44,7 +47,7 @@ class QuizRoutes(Resource):
         user_id: str = request.user_id
         # user_id: str = "user_17ae337cff"
         if file_id is None:
-            file_id='file_38b40d0a5b'
+            file_id='file_be44cbafe5'
 
         if quiz_type not in ["new", "old"]:
             return {
@@ -53,26 +56,8 @@ class QuizRoutes(Resource):
                 "data": [],
             }, 400
 
-        if quiz_type == "new":
-            filters = [
-                QuizModel.user_id == user_id,
-                QuizModel.has_started.is_(False),
-            ]
-            if file_id is not None:
-                filters.append(QuizModel.file_id == file_id)
-            quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
-                model=QuizModel,
-                filters=and_(*tuple(filters)),
-            )
-        else:
-            filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(True)]
-            if file_id is not None:
-                filters.append(QuizModel.file_id == file_id)
-            quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
-                model=QuizModel,
-                filters=and_(*tuple(filters)),
-            )
-
+        quiz_list_for_user:List[QuizModel]=get_list_of_quiz(user_id=user_id, file_id=file_id, quiz_type=quiz_type)
+        
         return {
             "error": None,
             "message": "Quiz generated successfully",
@@ -214,6 +199,14 @@ class QuizAnswersRoutes(Resource):
 
             next_question, is_last_question = check_and_fetch_latest_question_for_quiz(quiz_id=quiz_id)
 
+            logger.info(f"Next Question for quiz: {next_question}")
+            if not next_question:
+                return {
+                    "error": None,
+                    "message": "Quiz Ended successfully",
+                    "data": None,
+                }, 200
+
             update_all_questions_for_quiz(quiz_id=quiz_id, except_qna_id=next_question.id)
 
             thread = threading.Thread(
@@ -222,12 +215,7 @@ class QuizAnswersRoutes(Resource):
             thread.start()
 
 
-            if not next_question:
-                return {
-                    "error": None,
-                    "message": "Quiz Ended successfully",
-                    "data": None,
-                }, 200
+            
             
             update_quiz_question(
                 question_id=next_question.id,

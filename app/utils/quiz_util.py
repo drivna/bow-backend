@@ -1,6 +1,9 @@
 import json
+import os
+import threading
 from typing import Any, Dict, List, Optional, Tuple
 import random
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 from loguru import logger
@@ -16,9 +19,32 @@ from app.database.models.quiz_qna import DifficultyLevel, QuizQnAModel
 from app.database.object_repository import ObjectRepository
 from app.database.models.quiz_answers import QuizUserAnswersModel
 from sqlalchemy.orm import joinedload
-
+load_dotenv()
+environment = os.getenv("ENVIRONMENT")
 from app.utils.c_gpt import fetch_response_from_model
 
+
+def get_list_of_quiz(user_id:str,quiz_type:str, file_id:Optional[str]=None)->List[QuizModel]:
+    if quiz_type == "new":
+        filters = [
+            QuizModel.user_id == user_id,
+            QuizModel.has_started.is_(False),
+        ]
+        if file_id is not None:
+            filters.append(QuizModel.file_id == file_id)
+        quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
+            model=QuizModel,
+            filters=and_(*tuple(filters)),
+        )
+    else:
+        filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(True)]
+        if file_id is not None:
+            filters.append(QuizModel.file_id == file_id)
+        quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
+            model=QuizModel,
+            filters=and_(*tuple(filters)),
+        )
+    return quiz_list_for_user
 
 def generate_quiz_for_file(file_id: str, user_id: str):
     logger.info(f"Generating quiz for file_id:{file_id}")
@@ -59,18 +85,19 @@ def generate_quiz_for_file(file_id: str, user_id: str):
         filters=(FileTopicModel.file_id == file_id),
         order_by=(FileTopicModel.page_number.desc()),
     )
-    topics: List[str] = []
-    for topic in topics_for_file:
-        topics.append(topic.topic_description)
+    if len(topics_for_file) > 0:
+        topics: List[str] = []
+        for topic in topics_for_file:
+            topics.append(topic.topic_description)
 
-    mid = len(topics) // 2
-    logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[:mid]}")
+        mid = len(topics) // 2
+        logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[:mid]}")
 
-    fetch_and_insert_quiz_in_db(topics=topics[:mid])
+        fetch_and_insert_quiz_in_db(topics=topics[:mid])
 
-    logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[mid:]}")
+        logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[mid:]}")
 
-    fetch_and_insert_quiz_in_db(topics=topics[mid:])
+        fetch_and_insert_quiz_in_db(topics=topics[mid:])
 
     return
 
@@ -83,6 +110,9 @@ def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str,
         answer: str = question_answer.get("correct_answer")
         options: str = question_answer.get("options")
         difficulty: str = question_answer.get("difficulty")
+        
+        if environment == 'TEST':
+            answer = json.dumps(answer)
 
         qna: QNAModel = QNAModel(question=question, answer=answer)
         ObjectRepository.insert_single_object(qna)
@@ -101,27 +131,28 @@ def create_new_quiz_in_db(quiz_data: Dict[str, Any], user_id: str, file_id: str,
 def get_next_question(
     correct_streak, last_difficulty, easy_questions, medium_questions, hard_questions
 ):
+    logger.info(f"INSIDE get_next_question, correct_streak: {correct_streak}, last_diffculty: {last_difficulty}, easy: {len(easy_questions)}, medium: {len(medium_questions)}, hard: {len(hard_questions)}")
     def pick_random(question_pool):
         return random.choice(question_pool) if question_pool else None
 
     if correct_streak <= 1:
         # Stick to easy if user is new or making mistakes
-        return pick_random(easy_questions)
+        return pick_random(easy_questions or medium_questions or hard_questions)
 
     if correct_streak == 2:
         # Progress to medium if they’re doing well from easy
         if last_difficulty == "easy":
-            return pick_random(medium_questions) or pick_random(easy_questions)
-        return pick_random(easy_questions)
+            return pick_random(medium_questions or hard_questions) or pick_random(easy_questions or medium_questions)
+        return pick_random(easy_questions or medium_questions)
 
     if correct_streak >= 3:
         # Push difficulty if streak is good
         if last_difficulty == "medium":
-            return pick_random(hard_questions) or pick_random(medium_questions)
+            return pick_random(hard_questions or medium_questions) or pick_random(medium_questions or hard_questions)
         elif last_difficulty == "easy":
-            return pick_random(medium_questions) or pick_random(easy_questions)
+            return pick_random(medium_questions or hard_questions) or pick_random(easy_questions or medium_questions)
         elif last_difficulty == "hard":
-            return pick_random(hard_questions) or pick_random(medium_questions)
+            return pick_random(hard_questions or medium_questions)
 
     return pick_random(easy_questions + medium_questions + hard_questions)
 
@@ -350,11 +381,14 @@ def check_and_fetch_latest_question_for_quiz(quiz_id:str):
 
 
 def fetch_next_question_in_quiz(quiz_id: str):
+    quiz: QuizModel = ObjectRepository.get_object_by_id(model=QuizModel, object_id=quiz_id)
+    summary = quiz.quiz_summary
+    correct_streak = summary.get('current_streak')
     total_count_of_questions_seen_by_user = get_total_count_of_questions_given_to_user(quiz_id=quiz_id)
     
     logger.info(f"Total questions given to user till now is {total_count_of_questions_seen_by_user}, status: {total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS // 2}")
     is_last_question = False
-    if total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS // 2:
+    if total_count_of_questions_seen_by_user + 1 == TOTAL_QUIZ_QUESTIONS:
         logger.info('Reached second last question')
         is_last_question = True
     
@@ -369,12 +403,13 @@ def fetch_next_question_in_quiz(quiz_id: str):
     e_quiz_qna_list, m_quiz_qna_list, h_quiz_qna_list = fetch_all_questions_with_difficulty_for_quiz(quiz_id=quiz_id)
 
     question: QuizQnAModel = get_next_question(
-        correct_streak=0,
+        correct_streak=correct_streak,
         last_difficulty=DifficultyLevel.EASY.value.lower(),
         easy_questions=e_quiz_qna_list,
         medium_questions=m_quiz_qna_list,
         hard_questions=h_quiz_qna_list,
     )
+    logger.info(f'<INSIDE> fetch_next_question_in_quiz>question: {question}')
 
     return question, is_last_question
 
@@ -383,6 +418,7 @@ def check_and_generate_more_questions(
     last_difficulty,
     quiz_id:str,
 ):
+    logger.info("<INSIDE>: check_and_generate_more_questions")
     total_questions_served = get_total_count_of_questions_given_to_user(quiz_id=quiz_id)
     quiz: QuizModel = ObjectRepository.get_object_by_id(model=QuizModel, object_id=quiz_id)
     summary = quiz.quiz_summary
@@ -415,6 +451,7 @@ def check_and_generate_more_questions(
         correct_streak=correct_streak,
         last_difficulty=last_difficulty,
     )
+    logger.info(f'<difficulty_bucket_to_generate> {difficulty_bucket_to_generate}')
 
     if not difficulty_bucket_to_generate:
         return
@@ -423,6 +460,7 @@ def check_and_generate_more_questions(
         existing_questions_of_quiz_for_file,
         existing_quiz_names,
     ) = get_all_questions_generated_for_file(file_id=file.id)
+
 
 
     generate_quiz_for_difficulty(
@@ -480,6 +518,7 @@ def should_generate_more_questions(
 def generate_quiz_for_difficulty(
     file_content: str, prev_questions: List[str], prev_quiz_names: List[str], topics: List[str]
 ):
+    logger.info(f'<INSIDE> generate_quiz_for_difficulty ')
     system_prompt_for_quiz_agent = ChatGptPrompts.get_quiz_generation_prompt_with_model_name(
         pdf_text=file_content,
         previous_questions=prev_questions,
@@ -559,3 +598,90 @@ def format_quiz_qna_for_response(question: QuizQnAModel):
         "qna_id": question_qna.id,
     }
     return response
+
+
+
+def handle_answer_and_generate_new_question_for_quiz(qna_id:str, user_answer, user_id:str, quiz_id:str):
+    qna = ObjectRepository.get_object_by_id(model=QNAModel, object_id=qna_id)
+    if not qna:
+        return {
+            "error": "QNA not found",
+            "message": "Invalid QNA ID provided",
+            "data": None,
+        }
+
+    quiz_qna: QuizQnAModel = ObjectRepository.get_object_by_id(
+        model=QuizQnAModel, object_id=qna_id
+    )
+    if not quiz_qna:
+        return {
+            "error": "QNA not found",
+            "message": "Invalid QNA ID provided",
+            "data": None,
+        }
+
+    is_correct = user_answer.strip().lower() == qna.answer.strip().lower()
+
+    existing_answer = query_manager.query_with_filter(
+        model=QuizUserAnswersModel,
+        filters=and_(
+            QuizUserAnswersModel.user_id == user_id,
+            QuizUserAnswersModel.quiz_id == quiz_id,
+            QuizUserAnswersModel.qna_id == qna_id,
+        ),
+    )
+
+    if existing_answer:
+        return {
+            "error": "Answer already exists",
+            "message": "User has already answered this question",
+            "data": None,
+        }
+
+    quiz_answer = QuizUserAnswersModel(
+        user_id=user_id,
+        quiz_id=quiz_id,
+        qna_id=qna_id,
+        user_answer=user_answer,
+        is_correct=is_correct,
+        time_taken=0,
+    )
+
+    answer = ObjectRepository.insert_single_object(quiz_answer)
+
+    update_quiz_question(question_id=quiz_qna.id, is_given_to_user=True, is_answered=True)
+
+    next_question, is_last_question = check_and_fetch_latest_question_for_quiz(quiz_id=quiz_id)
+
+    update_all_questions_for_quiz(quiz_id=quiz_id, except_qna_id=next_question.id)
+
+    if environment!='TEST':
+        thread = threading.Thread(
+            target=check_and_generate_more_questions, kwargs={"quiz_id": quiz_id, "last_difficulty": next_question.difficulty}
+        )
+        thread.start()
+    else:
+        check_and_generate_more_questions(quiz_id= quiz_id, last_difficulty= next_question.difficulty)
+
+
+    if not next_question:
+        return {
+                "error": None,
+                "message": "Quiz Ended successfully",
+                "data": None,
+            }
+    
+    update_quiz_question(
+        question_id=next_question.id,
+        is_given_to_user=True,
+        is_answered=next_question.is_answered,
+        is_latest_question_given_to_user=True
+    )
+
+    # Updating quiz summary
+    update_quiz_summary(quiz_id=quiz_id, user_id=user_id, has_started=True)
+
+    next_question_response = format_quiz_qna_for_response(question=next_question)
+    next_question_response['is_last_question'] = is_last_question
+
+    return next_question_response
