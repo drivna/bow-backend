@@ -12,6 +12,7 @@ from app.database.models.flashcard_qna import FlashCardQnAModel
 from app.database.models.flashcards import FlashCardModel
 from app.database.models.quiz import QuizModel
 from app.database.object_repository import ObjectRepository
+from app.middleware.auth import authenticate_user
 from app.utils.c_gpt import featch_and_stream_response_from_model, fetch_response_from_model
 from typing import List, Dict, Any, Optional
 
@@ -79,7 +80,7 @@ class ActionFlashCardRoutes(Resource):
         try:
             user_id: str = request.user_id
         except Exception:
-            user_id = 'user_17ae337cff'
+            user_id = "user_17ae337cff"
 
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
@@ -130,6 +131,7 @@ class ActionQuizRoutes(Resource):
     parser.add_argument("topic", help="TopicId", required=False)
 
     @action_api_ns.expect(parser)
+    @authenticate_user
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")

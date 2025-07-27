@@ -56,3 +56,12 @@ class QuizUserAnswersModel(Base):
 
     def get_identifiers(self) -> List[Any]:
         return [self.user_id, self.quiz_id, self.qna_id, self.created_at]
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "userAnswer": self.user_answer,
+            "isCorrect": self.is_correct,
+            "timeTaken": self.time_taken,
+            "createdAt": self.created_at.isoformat(),
+        }

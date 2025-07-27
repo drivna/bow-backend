@@ -55,7 +55,7 @@ class QuizModel(Base):
 
     def to_dict(self) -> Dict[str, Any]:
         quiz_summary = self.quiz_summary or {}
-        quiz_summary['totalQuestions'] = 10
+        quiz_summary["totalQuestions"] = 10
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -69,4 +69,3 @@ class QuizModel(Base):
             if hasattr(self, "updated_at") and self.updated_at
             else None,
         }
-

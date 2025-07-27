@@ -22,6 +22,7 @@ from app.utils.quiz_util import (
     check_and_generate_more_questions,
     format_quiz_qna_for_response,
     get_list_of_quiz,
+    get_quiz_by_id,
     handle_answer_and_generate_new_question_for_quiz,
     update_all_questions_for_quiz,
     update_quiz_question,
@@ -46,18 +47,20 @@ class QuizRoutes(Resource):
         quiz_type: str = args.get("quizType")
         user_id: str = request.user_id
         # user_id: str = "user_17ae337cff"
-        if file_id is None:
-            file_id='file_be44cbafe5'
+        # if file_id is None:
+        #     file_id='file_be44cbafe5'
 
         if quiz_type not in ["new", "old"]:
             return {
                 "error": None,
-                "message": "Invalid Quiz Type", 
+                "message": "Invalid Quiz Type",
                 "data": [],
             }, 400
 
-        quiz_list_for_user:List[QuizModel]=get_list_of_quiz(user_id=user_id, file_id=file_id, quiz_type=quiz_type)
-        
+        quiz_list_for_user: List[QuizModel] = get_list_of_quiz(
+            user_id=user_id, file_id=file_id, quiz_type=quiz_type
+        )
+
         return {
             "error": None,
             "message": "Quiz generated successfully",
@@ -92,7 +95,6 @@ class QuizRoutes(Resource):
             }, 400
 
         try:
-
             question_qna: QNAModel = question.qna
 
             response: Dict[str, Any] = {
@@ -100,20 +102,22 @@ class QuizRoutes(Resource):
                 "answer": question_qna.answer,
                 "options": question.options,
                 "difficulty": question.difficulty.value,
-                "qna_id": question_qna.id, 
-                'is_last_question':f'{is_last_question}'
+                "qna_id": question_qna.id,
+                "is_last_question": f"{is_last_question}",
             }
 
             update_all_questions_for_quiz(quiz_id=quiz_id, except_qna_id=question.id)
 
-
             update_quiz_question(
-                question_id=question.id, is_given_to_user=True, is_answered=question.is_answered, is_latest_question_given_to_user=True
+                question_id=question.id,
+                is_given_to_user=True,
+                is_answered=question.is_answered,
+                is_latest_question_given_to_user=True,
             )
 
-
             thread = threading.Thread(
-                target=check_and_generate_more_questions, kwargs={"quiz_id": quiz_id, "last_difficulty": question.difficulty}
+                target=check_and_generate_more_questions,
+                kwargs={"quiz_id": quiz_id, "last_difficulty": question.difficulty},
             )
             thread.start()
 
@@ -128,6 +132,7 @@ class QuizRoutes(Resource):
                 "message": f"Unable to fetch question, Please contact support, error: {e}",
                 "data": {},
             }, 400
+
 
 @quiz_api_ns.route("/answer")
 class QuizAnswersRoutes(Resource):
@@ -197,7 +202,9 @@ class QuizAnswersRoutes(Resource):
 
             update_quiz_question(question_id=quiz_qna.id, is_given_to_user=True, is_answered=True)
 
-            next_question, is_last_question = check_and_fetch_latest_question_for_quiz(quiz_id=quiz_id)
+            next_question, is_last_question = check_and_fetch_latest_question_for_quiz(
+                quiz_id=quiz_id
+            )
 
             logger.info(f"Next Question for quiz: {next_question}")
             if not next_question:
@@ -210,25 +217,23 @@ class QuizAnswersRoutes(Resource):
             update_all_questions_for_quiz(quiz_id=quiz_id, except_qna_id=next_question.id)
 
             thread = threading.Thread(
-                target=check_and_generate_more_questions, kwargs={"quiz_id": quiz_id, "last_difficulty": next_question.difficulty}
+                target=check_and_generate_more_questions,
+                kwargs={"quiz_id": quiz_id, "last_difficulty": next_question.difficulty},
             )
             thread.start()
 
-
-            
-            
             update_quiz_question(
                 question_id=next_question.id,
                 is_given_to_user=True,
                 is_answered=next_question.is_answered,
-                is_latest_question_given_to_user=True
+                is_latest_question_given_to_user=True,
             )
 
             # Updating quiz summary
             update_quiz_summary(quiz_id=quiz_id, user_id=user_id, has_started=True)
 
             next_question_response = format_quiz_qna_for_response(question=next_question)
-            next_question_response['is_last_question'] = is_last_question
+            next_question_response["is_last_question"] = is_last_question
 
             return {
                 "error": None,
@@ -247,3 +252,18 @@ class QuizAnswersRoutes(Resource):
                 "message": "Failed to submit answer",
                 "data": None,
             }, 500
+
+
+@quiz_api_ns.route("/<string:quiz_id>")
+class QuizRoute(Resource):
+    @authenticate_user
+    def get(self, quiz_id: str):
+        user_id: str = request.user_id
+
+        update_quiz_summary(quiz_id=quiz_id, user_id=user_id)
+
+        return {
+            "error": None,
+            "message": "Quiz fetched successfully",
+            "data": get_quiz_by_id(quiz_id=quiz_id),
+        }, 201

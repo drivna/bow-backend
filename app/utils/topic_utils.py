@@ -16,6 +16,8 @@ def generate_topics_for_file(file_content, file_id):
     messages = build_messages(system_prompt, file_content)
     response = fetch_response_from_model(message_for_model=messages)
     print(response)
+    if not response:
+        return None
 
     for res in response:
         key_list = res.split("_")

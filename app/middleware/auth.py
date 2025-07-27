@@ -16,11 +16,10 @@ def add_token_to_cookies(response: Response, registered_user_id: str):
     response.set_cookie(
         "token",
         access_token,
-        domain="127.0.0.1",
         httponly=True,
         max_age=expires,
-        samesite="None",
-        secure=True,
+        samesite="Lax",  # ✅ Lax works fine for most cases on same-origin requests
+        secure=False,  # ✅ Must be False for HTTP (localhost)
     )
 
     return response
@@ -30,6 +29,7 @@ def authenticate_user(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         token: str = request.cookies.get("token")
+        print(1, request.cookies)
         if token is None:
             raise ForbiddenError("User is not logged in. Please sign-in to continue")
         try:

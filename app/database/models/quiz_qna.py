@@ -31,7 +31,9 @@ class QuizQnAModel(Base):
     is_answered: Mapped[bool] = mapped_column("IS_ANSWERED", Boolean, default=False)
 
     is_given_to_user: Mapped[bool] = mapped_column("IS_GIVEN_TO_USER", Boolean, default=False)
-    is_latest_given_question_to_user: Mapped[bool] = mapped_column("IS_LATEST_GIVEN_QUESTION_TO_USER", Boolean, default=False)
+    is_latest_given_question_to_user: Mapped[bool] = mapped_column(
+        "IS_LATEST_GIVEN_QUESTION_TO_USER", Boolean, default=False
+    )
 
     time_limit: Mapped[int] = mapped_column(
         "TIME_LIMIT", Integer, nullable=True, doc="Time allowed for this question in seconds"
