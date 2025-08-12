@@ -7,7 +7,8 @@ import openai
 from app.utils.jwt_utils import create_token
 from app.utils.ws_util import send_to_socket
 
-openai.api_key = "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"
+openai.api_key = ""
+
 
 def featch_and_stream_response_from_model(message_for_model: List[Dict[str, Any]], user_id: str):
     try:
@@ -19,19 +20,22 @@ def featch_and_stream_response_from_model(message_for_model: List[Dict[str, Any]
         )
         token = create_token(user_id=user_id)
 
-        buffer = ""
+        message_chunk_array = []
         for chunk in response:
             if "choices" in chunk:
-                delta = chunk["choices"][0].get("delta", {})
-                content_piece = delta.get("content", "")
-                if content_piece:
-                    buffer += content_piece  # concatenate directly, no spaces
-                    if len(buffer) >= 50:  # send after N characters
-                        send_to_socket(message=buffer, user_id=user_id, token=token)
-                        buffer = ""  # reset buffer
-
-        if buffer:  # send any leftover text
-            send_to_socket(message=buffer, user_id=user_id, token=token)
+                message = chunk["choices"][0].get("delta", {}).get("content")
+                if message:
+                    if len(message_chunk_array) == 10:
+                        send_to_socket(
+                            message=" ".join(message_chunk_array), user_id=user_id, token=token
+                        )
+                        message_chunk_array = []
+                        message_chunk_array.append(message)
+                    else:
+                        message_chunk_array.append(message)
+        if message_chunk_array:
+            send_to_socket(message=" ".join(message_chunk_array), user_id=user_id, token=token)
+            message_chunk_array = []
 
     except Exception as e:
         print(f"Error occurred: {e}")
