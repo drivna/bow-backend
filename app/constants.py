@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, Dict, List
 
 
 class ChatGptPrompts:
@@ -424,6 +424,30 @@ class ChatGptMessagePayload:
             },
         ]
 
+    @classmethod
+    def get_message_payload_for_topic_relations(
+        cls, new_topics: List[str], existing_topics: List[str]
+    ) -> List[Dict[str, str]]:
+        """
+        Create LLM prompt for deciding relatedness between all new/existing topic pairs.
+        """
+        prompt = (
+            "You are deciding if two topics are conceptually related enough to connect "
+            "in a knowledge map. Only mark as related if they are clearly connected. "
+            "Return ONLY valid JSON in this format:\n"
+            "{\n"
+            '  "results": [\n'
+            '    {"a": "<topic1>", "b": "<topic2>", "related": true|false}\n'
+            "  ]\n"
+            "}\n"
+        )
+
+        pairs_text = "\n".join([f'- "{a}" ↔ "{b}"' for a in new_topics for b in existing_topics])
+        return [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"Decide relatedness for these topic pairs:\n{pairs_text}"},
+        ]
+
 
 LOW_POOL_THRESHOLD: int = 3
-TOTAL_QUIZ_QUESTIONS:int=10
+TOTAL_QUIZ_QUESTIONS: int = 10

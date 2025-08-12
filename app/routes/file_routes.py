@@ -11,6 +11,7 @@ from app.database.models.file import FileModel
 from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
+from app.utils.file_util import process_and_create_action_items_for_file
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
 from app.utils.topic_utils import generate_topics_for_file
@@ -72,9 +73,9 @@ class FileParsingRoutes(Resource):
             return {"error": str(e), "message": "Failed to save the file"}, 500
 
         if is_new_created_file is True:
-            generate_topics_for_file(file_content=file_object.file_content, file_id=file_object.id)
             thread = threading.Thread(
-                target=generate_quiz_for_file, kwargs={"file_id": saved_file.id, "user_id": user_id}
+                target=process_and_create_action_items_for_file,
+                kwargs={"file_object": file_object, "user_id": user_id},
             )
             thread.start()
 

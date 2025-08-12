@@ -20,6 +20,9 @@ from .models.quiz import QuizModel  # noqa: F401
 from .models.quiz_qna import QuizQnAModel  # noqa: F401
 from .models.quiz_answers import QuizUserAnswersModel  # noqa: F401
 from .models.file_topics import FileTopicModel  # noqa: F401
+from .models.knowledge_map_edges import KnowledgeEdgeModel
+from .models.knowledge_map_node_document import NodeDocumentModel
+from .models.knowledge_map_nodes import KnowledgeNodeModel
 
 Base.metadata.create_all(database_engine)
 

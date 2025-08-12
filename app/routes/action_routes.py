@@ -16,6 +16,7 @@ from app.middleware.auth import authenticate_user
 from app.utils.c_gpt import featch_and_stream_response_from_model, fetch_response_from_model
 from typing import List, Dict, Any, Optional
 
+from app.utils.knwoledge_map_util import get_knowledge_map_for_user
 from app.utils.qna_util import insert_flashcard_qna_in_db
 from app.utils.quiz_util import (
     create_new_quiz_in_db,
@@ -155,3 +156,20 @@ class ActionQuizRoutes(Resource):
             "message": "Quiz generated successfully",
             "data": [],
         }, 201
+
+
+@action_api_ns.route("/knowledgeMap")
+class ActionKnowledgeMapRoutes(Resource):
+    parser: RequestParser = RequestParser()
+    parser.add_argument("fileId", help="FileId", required=False)
+
+    @action_api_ns.expect(parser)
+    @authenticate_user
+    def get(self):
+        args: ParseResult = self.parser.parse_args()
+        file_id: str = args.get("fileId")
+        user_id: str = request.user_id
+
+        data = get_knowledge_map_for_user(user_id=user_id, file_id=file_id)
+
+        return {"error": None, "message": "Knowledge map fetched successfully", "data": data}, 200
