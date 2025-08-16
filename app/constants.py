@@ -82,6 +82,7 @@ class ChatGptPrompts:
 
             ### Final Output Requirements:
             - Output must be in **valid markdown**.
+            - Output must be less than 300 words.
             - Must cover the entire document comprehensively.
             - End the response with the exact phrase: **is_summary_completed**
             """
