@@ -13,7 +13,7 @@ from app.database.models.flashcards import FlashCardModel
 from app.database.models.quiz import QuizModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
-from app.utils.c_gpt import featch_and_stream_response_from_model, fetch_response_from_model
+from app.utils.c_gpt import fetch_and_stream_response_from_model, fetch_response_from_model
 from typing import List, Dict, Any, Optional
 
 from app.utils.knwoledge_map_util import get_knowledge_map_for_user
@@ -62,7 +62,7 @@ class ActionSummaryRoutes(Resource):
                 )
             )
 
-        featch_and_stream_response_from_model(
+        fetch_and_stream_response_from_model(
             message_for_model=message_for_model, user_id=request.user_id
         )
 

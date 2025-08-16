@@ -16,7 +16,6 @@ from app.routes.quiz_route import quiz_api_ns
 
 environment = os.getenv("ENVIRONMENT")
 app = Flask(__name__)
-socket_client = socketio.Client()
 
 
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size

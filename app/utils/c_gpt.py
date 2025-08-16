@@ -1,44 +1,50 @@
 import json
 import re
+import time
 from typing import Any, Dict, List
 import openai
 
 
 from app.utils.jwt_utils import create_token
-from app.utils.ws_util import send_to_socket
+from app.utils.ws_util import send_to_room
 
 openai.api_key = ""
 
 
-def featch_and_stream_response_from_model(message_for_model: List[Dict[str, Any]], user_id: str):
+def fetch_and_stream_response_from_model(message_for_model, user_id: str):
     try:
-        response = openai.ChatCompletion.create(
+        resp = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=message_for_model,
             temperature=0.3,
             stream=True,
         )
-        token = create_token(user_id=user_id)
+        buf, buf_chars = [], 0
+        FLUSH_CHARS, FLUSH_SECS = 800, 0.5
+        last = time.time()
 
-        message_chunk_array = []
-        for chunk in response:
-            if "choices" in chunk:
-                message = chunk["choices"][0].get("delta", {}).get("content")
-                if message:
-                    if len(message_chunk_array) == 10:
-                        send_to_socket(
-                            message=" ".join(message_chunk_array), user_id=user_id, token=token
-                        )
-                        message_chunk_array = []
-                        message_chunk_array.append(message)
-                    else:
-                        message_chunk_array.append(message)
-        if message_chunk_array:
-            send_to_socket(message=" ".join(message_chunk_array), user_id=user_id, token=token)
-            message_chunk_array = []
+        def flush():
+            nonlocal buf, buf_chars, last
+            if buf:
+                send_to_room(user_id, "".join(buf), "message")
+                buf, buf_chars, last = [], 0, time.time()
 
+        for chunk in resp:
+            if "choices" not in chunk: 
+                continue
+            ch = chunk["choices"][0]
+            piece = ch.get("delta", {}).get("content")
+            if piece:
+                buf.append(piece); buf_chars += len(piece)
+            if buf_chars >= FLUSH_CHARS or (time.time() - last) >= FLUSH_SECS or (piece and "\n" in piece):
+                flush()
+            if ch.get("finish_reason"):
+                break
+
+        flush()
+        send_to_room(user_id, "", "done")
     except Exception as e:
-        print(f"Error occurred: {e}")
+        send_to_room(user_id, f"Error: {e}", "error")
 
 
 def fetch_response_from_model(message_for_model: List[Dict[str, Any]]):

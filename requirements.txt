@@ -91,6 +91,7 @@ python-socketio==5.13.0
 pytz==2024.1
 pyxnat==1.6.3
 rdflib==7.1.4
+redis==6.4.0
 requests==2.31.0
 requests-toolbelt==1.0.0
 scipy==1.15.3
