@@ -2,13 +2,17 @@ from typing import Any, List, Optional
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import ParseResult, RequestParser
+from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.orm import joinedload
 from app.database import query_manager
 from app.database.models.flashcards import FlashCardModel
 from app.database.models.qna import QNAModel
-from app.database.models.qna_actions import QNAActions
+from app.database.models.qna_actions import QNAActions, QnaFlashCardAction
 from app.database.models.flashcard_qna import FlashCardQnAModel
+from app.database.object_repository import ObjectRepository
+from app.middleware.auth import authenticate_user
+from flask_restx import fields
 
 flashcard_api_ns = Namespace("flashcard", description="APIs for flashcard")
 
@@ -19,6 +23,7 @@ class FlashcardRoutes(Resource):
     parser.add_argument("fileId", help="FileId", required=False)
 
     @flashcard_api_ns.expect(parser)
+    @authenticate_user
     def get(self):
         args: ParseResult = self.parser.parse_args()
         file_id: Optional[str] = args.get("fileId")
@@ -50,7 +55,6 @@ class FlashcardRoutes(Resource):
                 qna_actions: List[QNAActions] = query_manager.query_with_filter(
                     model=QNAActions, filters=(QNAActions.qna_id == qna.id)
                 )
-
                 status = qna_actions[0].qna_flashcard_action.value if qna_actions else None
 
                 response.append(
@@ -68,4 +72,51 @@ class FlashcardRoutes(Resource):
             "error": None,
             "message": "flashcards fetched successfully",
             "data": response,
+        }, 200
+
+
+
+update_status_model = flashcard_api_ns.model(
+    "UpdateFlashcardStatus",
+    {
+        "qnaId": fields.String(required=True, description="QnA ID"),
+        "status": fields.String(
+            required=True,
+            description="Flashcard status",
+            enum=[action.value for action in QnaFlashCardAction],
+        ),
+    },
+)
+
+
+@flashcard_api_ns.route("/status")
+class FlashcardStatusRoutes(Resource):
+    @flashcard_api_ns.expect(update_status_model, validate=True)
+    @authenticate_user
+    def put(self):
+        """
+        Update or insert QNA status (KNOWN / REVIEW_LATER)
+        """
+        data = request.json
+        qna_id = data.get("qnaId")
+        status = data.get("status")
+
+        qna_action: List[QNAActions] = query_manager.query_with_filter(
+            model=QNAActions,
+            filters=(QNAActions.qna_id == qna_id),
+        )
+        logger.info(f"Qna Actions: {qna_action}")
+
+        if qna_action:
+            qna_action_obj = qna_action[0]
+            qna_action_obj.qna_flashcard_action = QnaFlashCardAction(status)
+            ObjectRepository.update_single_object(qna_action)
+        else:
+            qna_action = QNAActions(qna_id=qna_id, qna_flashcard_action=QnaFlashCardAction(status))
+            ObjectRepository.insert_single_object(qna_action)
+
+        return {
+            "error": None,
+            "message": f"QnA status updated to {status}",
+            "data": {"qnaId": qna_id, "status": status},
         }, 200
