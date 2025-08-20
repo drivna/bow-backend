@@ -5,6 +5,7 @@ from app.utils.topic_utils import generate_topics_for_file
 
 
 def process_and_create_action_items_for_file(file_object: FileModel, user_id: str):
+    logger.info(f"Processing file")
     generate_topics_for_file(
         file_content=file_object.file_content, file_id=file_object.id, user_id=user_id
     )

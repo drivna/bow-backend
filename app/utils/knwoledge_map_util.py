@@ -10,7 +10,7 @@ from app.database.models.knowledge_map_nodes import KnowledgeNodeModel
 from app.database.object_repository import ObjectRepository
 from app.database.query_manager import query_with_filter, query_with_join_and_filter
 from app.database.models.knowledge_map_edges import KnowledgeEdgeModel
-from app.utils.c_gpt import fetch_response_from_model
+from app.utils.g_gpt import fetch_response_from_model
 
 
 def normalize_topic(name: str) -> str:
@@ -82,9 +82,9 @@ def get_other_nodes_for_file(user_id: str, file_id: str, exclude_node_id: str) -
         order_by=None,
         limit=None,
         offset=None,
-        is_dict_response=True,
     )
-    return [r.get("node_id", None) for r in rows if r.get("node_id") is not None]
+    logger.info(f"response from get_other_nodes_for_file: {rows}")
+    return [r.node_id for r in rows if r.get("node_id") is not None]
 
 
 def update_knowledge_map_for_file(
@@ -146,9 +146,9 @@ def get_all_nodes_for_file(user_id: str, file_id: str) -> List[str]:
             KnowledgeNodeModel.user_id == user_id,
         ),
         group_by=(NodeDocumentModel.node_id,),
-        is_dict_response=True,
     )
-    return [r["node_id"] for r in rows if r.get("node_id")]
+    logger.info(f"Rows from get_all_nodes_for_file : {rows}")
+    return [r.node_id for r in rows if r.get("node_id")]
 
 
 def fetch_pairs_in_topics(
@@ -220,6 +220,7 @@ def update_full_knowledge_map_for_file(
         filters=and_(KnowledgeNodeModel.user_id == user_id, NodeDocumentModel.file_id != file_id),
         group_by=(KnowledgeNodeModel.id,),
     )
+    logger.info(f"Rows: {existing_rows}")
     existing_topics_map = {r.name: r.id for r in existing_rows}
 
     # Step 6: Relatedness check using GPT

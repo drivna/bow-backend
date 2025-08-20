@@ -521,10 +521,7 @@ def query_with_join_and_filter(
             results = results.all()
 
             for result_row in results:
-                if is_dict_response:
-                    values.append(result_row._asdict())
-                else:
-                    values.append(result_row)
+                values.append(result_row)
 
             session.expunge_all()
             session.commit()

@@ -2,11 +2,12 @@ from loguru import logger
 from app.constants import ChatGptPrompts
 from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
-from app.utils.c_gpt import fetch_response_from_model
+from app.utils.g_gpt import fetch_response_from_model
 from app.utils.knwoledge_map_util import update_full_knowledge_map_for_file
 
 
 def generate_topics_for_file(file_content, file_id, user_id):
+    logger.info('Generating topics for file')
     def build_messages(system_prompt, pages):
         messages = [{"role": "system", "content": system_prompt}]
         for page_index in range(len(pages)):
@@ -16,6 +17,8 @@ def generate_topics_for_file(file_content, file_id, user_id):
     system_prompt = ChatGptPrompts.get_topic_generation_prompt()
     messages = build_messages(system_prompt, file_content)
     response = fetch_response_from_model(message_for_model=messages)
+
+    logger.info(f"Response from model for topic generation: {response}")
 
     if not response:
         return None

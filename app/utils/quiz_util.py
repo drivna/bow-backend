@@ -27,7 +27,7 @@ from sqlalchemy.orm import joinedload
 
 load_dotenv()
 environment = os.getenv("ENVIRONMENT")
-from app.utils.c_gpt import fetch_response_from_model
+from app.utils.g_gpt import fetch_response_from_model
 
 
 def get_list_of_quiz(
@@ -70,6 +70,7 @@ def generate_quiz_for_file(file_id: str, user_id: str):
             prev_questions=existing_questions_of_quiz_for_file,
             topics=topics,
         )
+        logger.info(f"response from generate quiz : {response}")
         quiz_name: Optional[str] = response.get("quiz_name", None)
         if quiz_name is not None:
             quiz: QuizModel = QuizModel(user_id=user_id, file_id=file_id, quiz_name=quiz_name)
@@ -572,6 +573,7 @@ def generate_quiz_for_difficulty(
         prompt=system_prompt_for_quiz_agent,
     )
     response = fetch_response_from_model(message_for_model=message_for_model)
+    logger.info(f"Response from model for quiz: {response}")
 
     return response
 
