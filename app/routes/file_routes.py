@@ -14,7 +14,7 @@ from app.middleware.auth import authenticate_user
 from app.utils.file_util import process_and_create_action_items_for_file
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
-from app.utils.topic_utils import generate_topics_for_file
+from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
 
 file_api_ns = Namespace("files", description="APIs for file upload and parsing")
 
@@ -93,8 +93,12 @@ class FileParsingRoutes(Resource):
 @file_api_ns.route("")
 class FileParsingRoutes(Resource):
     @authenticate_user
-    def post(self):
-        user_id = request.user_id
+    def get(self):
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = 'user_17ae337cff'
+
 
         files_of_user: List[FileModel] = query_manager.query_with_filter(
             model=FileModel,

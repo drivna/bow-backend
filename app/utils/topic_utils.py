@@ -2,11 +2,11 @@ from loguru import logger
 from app.constants import ChatGptPrompts
 from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
-from app.utils.g_gpt import fetch_response_from_model
+from app.utils.c_gpt import fetch_response_from_model
 from app.utils.knwoledge_map_util import update_full_knowledge_map_for_file
 
 
-def generate_topics_for_file(file_content, file_id, user_id):
+def generate_topics_for_file_and_update_knowledge_map(file_content, file_id, user_id):
     logger.info('Generating topics for file')
     def build_messages(system_prompt, pages):
         messages = [{"role": "system", "content": system_prompt}]

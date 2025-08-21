@@ -8,7 +8,7 @@
 # from app.database.object_repository import ObjectRepository
 # from app.utils.pdf_util import get_file_hash, read_pdf_text
 # from app.utils.quiz_util import check_and_fetch_latest_question_for_quiz, generate_quiz_for_file, get_list_of_quiz, handle_answer_and_generate_new_question_for_quiz
-# from app.utils.topic_utils import generate_topics_for_file
+# from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
 
 # def generate_random_string(length: int) -> str:
 #     characters = string.digits

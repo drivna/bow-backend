@@ -16,7 +16,7 @@ from app.middleware.auth import authenticate_user
 from app.utils.g_gpt import fetch_and_stream_response_from_model, fetch_response_from_model
 from typing import List, Dict, Any, Optional
 
-from app.utils.knwoledge_map_util import get_knowledge_map_for_user
+from app.utils.knwoledge_map_util import get_knowledge_map_for_user, update_full_knowledge_map_for_file
 from app.utils.qna_util import insert_flashcard_qna_in_db
 from app.utils.quiz_util import (
     create_new_quiz_in_db,
@@ -24,6 +24,7 @@ from app.utils.quiz_util import (
     generate_quiz_for_file,
     get_all_questions_generated_for_file,
 )
+from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
 
 action_api_ns = Namespace("action", description="APIs for actions")
 
@@ -168,8 +169,64 @@ class ActionKnowledgeMapRoutes(Resource):
     def get(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
-        user_id: str = request.user_id
+        try:
+            user_id: str = request.user_id
+        except Exception:
+            user_id = 'user_17ae337cff'
 
         data = get_knowledge_map_for_user(user_id=user_id, file_id=file_id)
 
         return {"error": None, "message": "Knowledge map fetched successfully", "data": data}, 200
+    
+    post_parser = RequestParser()
+    post_parser.add_argument("fileId", help="FileId", required=True)
+    @action_api_ns.expect(post_parser)
+    @authenticate_user
+    def post(self):
+        args: ParseResult = self.parser.parse_args()
+        file_id: str = args.get("fileId")
+        try:
+            user_id: str = request.user_id
+        except Exception:
+            user_id = 'user_17ae337cff'
+
+        file: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
+        if not file:
+            return {
+            "error": 'INVALID_FILE_ID',
+            "message": "File not found",
+            "data": [],
+        }, 201
+
+
+        topics_of_file: List[FileTopicModel] = query_manager.query_with_filter(
+                model=FileTopicModel, filters=(FileTopicModel.file_id == file.id)
+        )
+        if not topics_of_file:
+            generate_topics_for_file_and_update_knowledge_map(file_content=file.file_content, file_id=file_id,user_id=user_id)
+        else:
+            page_wise_topics = {}
+
+            for topic_for_file in topics_of_file:
+                page_number = topic_for_file.page_number
+                if page_number in page_wise_topics:
+                    page_wise_topics[page_number].append(topic_for_file.topic_name)
+                else:
+                    page_wise_topics[page_number]=[topic_for_file.topic_name]
+
+            
+            for page in page_wise_topics:
+                km_result = update_full_knowledge_map_for_file(
+                    user_id=user_id,
+                    file_id=file_id,
+                    topics_list=page_wise_topics[page],
+                    page_number=page_number,
+                )
+                logger.info(f"Knowledge map updated for file={file_id}, result={km_result}")
+
+        
+        return {
+            "error":None,
+            "message": "Update knowledge map for user",
+            "data": [],
+        }, 201

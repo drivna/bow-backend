@@ -10,7 +10,7 @@ from app.database.models.knowledge_map_nodes import KnowledgeNodeModel
 from app.database.object_repository import ObjectRepository
 from app.database.query_manager import query_with_filter, query_with_join_and_filter
 from app.database.models.knowledge_map_edges import KnowledgeEdgeModel
-from app.utils.g_gpt import fetch_response_from_model
+from app.utils.c_gpt import fetch_response_from_model
 
 
 def normalize_topic(name: str) -> str:
@@ -148,7 +148,7 @@ def get_all_nodes_for_file(user_id: str, file_id: str) -> List[str]:
         group_by=(NodeDocumentModel.node_id,),
     )
     logger.info(f"Rows from get_all_nodes_for_file : {rows}")
-    return [r.node_id for r in rows if r.get("node_id")]
+    return [r.node_id for r in rows if r.node_id]
 
 
 def fetch_pairs_in_topics(
