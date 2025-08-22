@@ -17,6 +17,7 @@ from app.database.models.qna import QNAModel
 from app.database.models.quiz_qna import DifficultyLevel, QuizQnAModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
+from app.utils.activity_util import create_activity_for_quiz
 from app.utils.quiz_util import (
     check_and_fetch_latest_question_for_quiz,
     check_and_generate_more_questions,
@@ -82,6 +83,10 @@ class QuizRoutes(Resource):
         quiz_id: str = args.get("quizId")
         user_id: str = request.user_id
 
+        quiz_object: QuizModel = ObjectRepository.get_object_by_id(
+            model=QuizModel, object_id=quiz_id
+        )
+
         question: QuizQnAModel
         is_last_question: bool
 
@@ -120,6 +125,13 @@ class QuizRoutes(Resource):
                 kwargs={"quiz_id": quiz_id, "last_difficulty": question.difficulty},
             )
             thread.start()
+
+            create_activity_for_quiz(
+                quiz_id=quiz_id,
+                quiz_name=quiz_object.quiz_name,
+                quiz_summary=quiz_object.quiz_summary,
+                user_id=user_id,
+            )
 
             return {
                 "error": None,
@@ -207,7 +219,17 @@ class QuizAnswersRoutes(Resource):
             )
 
             logger.info(f"Next Question for quiz: {next_question}")
+            quiz_object: QuizModel = ObjectRepository.get_object_by_id(
+                model=QuizModel, object_id=quiz_id
+            )
             if not next_question:
+                create_activity_for_quiz(
+                    quiz_id=quiz_id,
+                    quiz_name=quiz_object.quiz_name,
+                    quiz_summary=quiz_object.quiz_summary,
+                    user_id=user_id,
+                )
+
                 return {
                     "error": None,
                     "message": "Quiz Ended successfully",
@@ -230,11 +252,19 @@ class QuizAnswersRoutes(Resource):
             )
 
             # Updating quiz summary
-            update_quiz_summary(quiz_id=quiz_id, user_id=user_id, has_started=True)
+            updated_summary = update_quiz_summary(
+                quiz_id=quiz_id, user_id=user_id, has_started=True
+            )
 
             next_question_response = format_quiz_qna_for_response(question=next_question)
             next_question_response["is_last_question"] = is_last_question
 
+            create_activity_for_quiz(
+                quiz_id=quiz_id,
+                quiz_name=quiz_object.quiz_name,
+                quiz_summary=updated_summary,
+                user_id=user_id,
+            )
             return {
                 "error": None,
                 "message": "Answer submitted successfully",

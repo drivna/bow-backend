@@ -6,9 +6,10 @@ from loguru import logger
 from sqlalchemy import and_
 
 from app.database import query_manager
+from app.database.models.activity import ActivityModel
 from app.database.models.user import UserModel
 from app.database.object_repository import ObjectRepository
-from app.middleware.auth import add_token_to_cookies
+from app.middleware.auth import add_token_to_cookies, authenticate_user
 from app.utils.jwt_utils import get_attribute_from_token
 from app.utils.password_utils import are_passwords_matching, hash_password
 
@@ -120,3 +121,59 @@ class UserSocketAuthRoute(Resource):
             "message": "user authenticated successfully",
             "data": {"id": user_id},
         }, 201
+
+
+@user_api_ns.route("/activity")
+class UserActivityRoutes(Resource):
+    @authenticate_user
+    def get(self):
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = "user_17ae337cff"
+
+        activities_of_user: List[ActivityModel] = query_manager.query_with_filter(
+            model=ActivityModel,
+            filters=(ActivityModel.user_id == user_id),
+            order_by=ActivityModel.created_at.desc(),
+        )
+
+        response: List[Dict[str, Any]] = []
+        for activity in activities_of_user:
+            res = {
+                "id": activity.id,
+                "user_id": activity.user_id,
+                "activity_type": activity.activity_type,
+                "activity_item_id": activity.activity_item_id,
+                "activity_description": activity.activity_description,
+                "created_at_date": activity.created_at.date(),
+            }
+            response.append(res)
+
+        return {
+            "error": None,
+            "message": "User activities fetched successfully",
+            "data": response,
+        }, 200
+
+
+@user_api_ns.route("/profile")
+class UserProfileRoutes(Resource):
+    @authenticate_user
+    def get(self):
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = "user_17ae337cff"
+
+        user: UserModel = ObjectRepository.get_object_by_id(model=UserModel, object_id=user_id)
+
+        return {
+            "error": None,
+            "message": "User activities fetched successfully",
+            "data": {
+                "name": user.user_name,
+                "email": user.email,
+                "registration_date": user.created_at.date(),
+            },
+        }, 200

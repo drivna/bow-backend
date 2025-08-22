@@ -11,6 +11,7 @@ from app.database.models.file import FileModel
 from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
+from app.utils.activity_util import create_activity_for_file_read
 from app.utils.file_util import process_and_create_action_items_for_file
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
@@ -79,6 +80,10 @@ class FileParsingRoutes(Resource):
             )
             thread.start()
 
+        create_activity_for_file_read(
+            file_id=saved_file.id, file_name=uploaded_file.filename, user_id=user_id
+        )
+
         return {
             "error": None,
             "message": "File uploaded, saved and parsed successfully",
@@ -97,8 +102,7 @@ class FileParsingRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = 'user_17ae337cff'
-
+            user_id = "user_17ae337cff"
 
         files_of_user: List[FileModel] = query_manager.query_with_filter(
             model=FileModel,

@@ -7,7 +7,8 @@ from app.utils.knwoledge_map_util import update_full_knowledge_map_for_file
 
 
 def generate_topics_for_file_and_update_knowledge_map(file_content, file_id, user_id):
-    logger.info('Generating topics for file')
+    logger.info("Generating topics for file")
+
     def build_messages(system_prompt, pages):
         messages = [{"role": "system", "content": system_prompt}]
         for page_index in range(len(pages)):

@@ -23,6 +23,7 @@ from .models.file_topics import FileTopicModel  # noqa: F401
 from .models.knowledge_map_edges import KnowledgeEdgeModel
 from .models.knowledge_map_node_document import NodeDocumentModel
 from .models.knowledge_map_nodes import KnowledgeNodeModel
+from .models.activity import ActivityModel
 
 Base.metadata.create_all(database_engine)
 

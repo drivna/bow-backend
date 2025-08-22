@@ -75,7 +75,6 @@ class FlashcardRoutes(Resource):
         }, 200
 
 
-
 update_status_model = flashcard_api_ns.model(
     "UpdateFlashcardStatus",
     {

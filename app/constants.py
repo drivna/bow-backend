@@ -93,7 +93,7 @@ class ChatGptPrompts:
         """
         Returns a system prompt for AI to create detailed summaries of selected content from a PDF
         while maintaining awareness of the entire document context.
-        
+
         Returns:
             str: Complete system prompt for contextual selected content summarization
         """
