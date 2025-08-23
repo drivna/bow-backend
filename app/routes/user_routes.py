@@ -156,6 +156,13 @@ class UserActivityRoutes(Resource):
             offset=(page - 1) * per_page,
         )
 
+        count_of_activities = query_manager.query_count_with_filter(
+            model=ActivityModel,
+            filters=(ActivityModel.user_id == user_id),
+        )
+
+        has_next: bool = page * per_page < count_of_activities
+
         response: List[Dict[str, Any]] = []
         for activity in activities_of_user:
             res = {
@@ -172,7 +179,11 @@ class UserActivityRoutes(Resource):
         return {
             "error": None,
             "message": "User activities fetched successfully",
-            "data": response,
+            "data": {
+                "activities": response,
+                "countTotalActivites": count_of_activities,
+                "hasNextPage": has_next,
+            },
         }, 200
 
 
