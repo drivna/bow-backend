@@ -146,7 +146,7 @@ class UserActivityRoutes(Resource):
                 "activity_type": activity.activity_type,
                 "activity_item_id": activity.activity_item_id,
                 "activity_description": activity.activity_description,
-                "created_at_date": activity.created_at.date(),
+                "created_at_date": str(activity.created_at.date()),
             }
             response.append(res)
 
@@ -174,6 +174,6 @@ class UserProfileRoutes(Resource):
             "data": {
                 "name": user.user_name,
                 "email": user.email,
-                "registration_date": user.created_at.date(),
+                "registration_date": str(user.created_at.date()),
             },
         }, 200
