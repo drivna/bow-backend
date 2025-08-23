@@ -176,5 +176,8 @@ class UserProfileRoutes(Resource):
                 "name": user.user_name,
                 "email": user.email,
                 "registration_date": str(user.created_at.date()),
+                'quiz_count':1,
+                'flashcards_count':10,
+                'files_count':5
             },
         }, 200
