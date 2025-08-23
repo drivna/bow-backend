@@ -1,7 +1,11 @@
 from typing import Any, Dict
 
 from app.database.models.activity import ActivityModel
+from app.database.models.file import FileModel
+from app.database.models.flashcards import FlashCardModel
+from app.database.models.quiz import QuizModel
 from app.database.object_repository import ObjectRepository
+from app.database.query_manager import query_count_with_filter
 
 
 def create_or_update_activity_for_user(
@@ -85,3 +89,22 @@ def create_activity_for_flashcard(
         activity_item_id=file_id,
         activity_type="FLASHCARD",
     )
+
+
+def get_user_quiz_count(user_id: str):
+    quiz_count = query_count_with_filter(model=QuizModel, filters=(QuizModel.user_id == user_id))
+    return quiz_count
+
+
+def get_user_flashcard_count(user_id: str):
+    quiz_count = query_count_with_filter(
+        model=FlashCardModel, filters=(FlashCardModel.user_id == user_id)
+    )
+    return quiz_count
+
+
+def get_user_files_count(user_id: str):
+    quiz_count = query_count_with_filter(
+        model=FileModel, filters=(FileModel.uploaded_by == user_id)
+    )
+    return quiz_count

@@ -10,8 +10,14 @@ from app.database.models.activity import ActivityModel
 from app.database.models.user import UserModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import add_token_to_cookies, authenticate_user
+from app.utils.activity_util import (
+    get_user_files_count,
+    get_user_flashcard_count,
+    get_user_quiz_count,
+)
 from app.utils.jwt_utils import get_attribute_from_token
 from app.utils.password_utils import are_passwords_matching, hash_password
+from flask_restx.reqparse import ParseResult, RequestParser
 
 user_api_ns = Namespace("users", description="APIs for users")
 
@@ -125,6 +131,11 @@ class UserSocketAuthRoute(Resource):
 
 @user_api_ns.route("/activity")
 class UserActivityRoutes(Resource):
+    parser: RequestParser = RequestParser()
+    parser.add_argument("page", help="Page Number", type=int, required=False)
+    parser.add_argument("perPage", help="Count per page", type=int, required=False)
+
+    @user_api_ns.expect(parser)
     @authenticate_user
     def get(self):
         try:
@@ -132,10 +143,17 @@ class UserActivityRoutes(Resource):
         except Exception:
             user_id = "user_17ae337cff"
 
+        args: ParseResult = self.parser.parse_args()
+
+        page: int = args.get("page", 1)
+        per_page: int = args.get("perPage", 10)
+
         activities_of_user: List[ActivityModel] = query_manager.query_with_filter(
             model=ActivityModel,
             filters=(ActivityModel.user_id == user_id),
             order_by=ActivityModel.created_at.desc(),
+            limit=per_page,
+            offset=(page - 1) * per_page,
         )
 
         response: List[Dict[str, Any]] = []
@@ -176,8 +194,8 @@ class UserProfileRoutes(Resource):
                 "name": user.user_name,
                 "email": user.email,
                 "registration_date": str(user.created_at.date()),
-                'quiz_count':1,
-                'flashcards_count':10,
-                'files_count':5
+                "quiz_count": get_user_quiz_count(user_id=user_id),
+                "flashcards_count": get_user_flashcard_count(user_id=user_id),
+                "files_count": get_user_files_count(user_id=user_id),
             },
         }, 200
