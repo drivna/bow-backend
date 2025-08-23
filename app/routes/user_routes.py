@@ -147,6 +147,7 @@ class UserActivityRoutes(Resource):
                 "activity_item_id": activity.activity_item_id,
                 "activity_description": activity.activity_description,
                 "created_at_date": str(activity.created_at.date()),
+                "created_at": str(activity.created_at),
             }
             response.append(res)
 
