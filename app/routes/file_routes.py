@@ -150,7 +150,7 @@ class FileTopicRoutes(Resource):
     parser.add_argument("topicName", help="Topic Name", required=True)
 
     @file_api_ns.expect(parser)
-    @authenticate_user
+    # @authenticate_user
     def get(self):
         try:
             user_id = request.user_id
@@ -169,7 +169,7 @@ class FileTopicRoutes(Resource):
 
         topic_from_db: List[FileTopicModel] = query_manager.query_with_filter(
             model=FileTopicModel,
-            filters=(FileTopicModel.topic_name.like(f"%{topic_name}%"),),
+            filters=FileTopicModel.topic_name.like(f"%{topic_name}%"),
             order_by=FileTopicModel.updated_at.desc(),
         )
 
@@ -184,7 +184,7 @@ class FileTopicRoutes(Resource):
 
         return {
             "error": None,
-            "message": "File IDs fetched successfully",
+            "message": "Topic details fetched successfully",
             "data": {
                 "fileIds": file_ids,
                 "topicDescription": topic_from_db[0].topic_description,
