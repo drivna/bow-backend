@@ -5,6 +5,7 @@ from flask import request
 from werkzeug.datastructures import FileStorage
 import os
 import threading
+from flask_restx.reqparse import ParseResult, RequestParser
 
 from app.database import query_manager
 from app.database.models.file import FileModel
@@ -141,3 +142,56 @@ class FileParsingRoutes(Resource):
             "message": "File uploaded, saved and parsed successfully",
             "data": response,
         }, 201
+
+
+
+
+
+@file_api_ns.route("/topic_detail")
+class FileTopicRoutes(Resource):
+    parser: RequestParser = RequestParser()
+    parser.add_argument("topicName", help="Topic Name", required=True)
+
+    @file_api_ns.expect(parser)
+    @authenticate_user
+    def get(self):
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = "user_17ae337cff"
+
+        args: ParseResult = self.parser.parse_args()
+        topic_name: str = args.get("topicName")
+
+        if not topic_name:
+            return {
+                "error": "INVALID/MISSING_TOPIC_NAME",
+                "message": "No Topic name provided",
+                "data": [],
+            }, 200
+        
+
+        topic_from_db: List[FileTopicModel] = query_manager.query_with_filter(
+            model=FileTopicModel,
+            filters=(FileTopicModel.topic_name.like(f"%{topic_name}%"),),
+            order_by=FileTopicModel.updated_at.desc(),
+        )
+
+        if not topic_from_db:
+            return {
+                "error": "TOPIC_NOT_FOUND",
+                "message": f"No records found for topic: {topic_name}",
+                "data": [],
+            }, 200
+
+        file_ids = list({topic.file_id for topic in topic_from_db})
+
+        return {
+            "error": None,
+            "message": "File IDs fetched successfully",
+
+            "data": {
+                'fileIds':file_ids,
+                'topicDescription':topic_from_db[0].topic_description,
+            },
+        }, 200
