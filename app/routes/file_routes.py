@@ -144,9 +144,6 @@ class FileParsingRoutes(Resource):
         }, 201
 
 
-
-
-
 @file_api_ns.route("/topic_detail")
 class FileTopicRoutes(Resource):
     parser: RequestParser = RequestParser()
@@ -169,7 +166,6 @@ class FileTopicRoutes(Resource):
                 "message": "No Topic name provided",
                 "data": [],
             }, 200
-        
 
         topic_from_db: List[FileTopicModel] = query_manager.query_with_filter(
             model=FileTopicModel,
@@ -189,9 +185,8 @@ class FileTopicRoutes(Resource):
         return {
             "error": None,
             "message": "File IDs fetched successfully",
-
             "data": {
-                'fileIds':file_ids,
-                'topicDescription':topic_from_db[0].topic_description,
+                "fileIds": file_ids,
+                "topicDescription": topic_from_db[0].topic_description,
             },
         }, 200

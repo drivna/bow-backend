@@ -148,6 +148,9 @@ def get_next_question(
     def pick_random(question_pool):
         return random.choice(question_pool) if question_pool else None
 
+    if not correct_streak:
+        correct_streak = 1
+
     if correct_streak <= 1:
         # Stick to easy if user is new or making mistakes
         return pick_random(easy_questions or medium_questions or hard_questions)
