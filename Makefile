@@ -32,7 +32,7 @@ build-no-cache: ## Build the Docker image without cache using docker-compose
 .PHONY: run
 run: ## Start the application in background mode (requires build first)
 	@echo "Starting Flask application in background..."
-	docker-compose -f $(COMPOSE_FILE) up -d
+	docker-compose -f $(COMPOSE_FILE) up 
 	@echo "✅ Application started at http://localhost:$(PORT)"
 	@echo "Use 'make logs' to view logs or 'make stop' to stop the application"
 
