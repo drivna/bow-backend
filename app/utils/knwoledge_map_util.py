@@ -87,52 +87,6 @@ def get_other_nodes_for_file(user_id: str, file_id: str, exclude_node_id: str) -
     return [r.node_id for r in rows if r.get("node_id") is not None]
 
 
-def update_knowledge_map_for_file(
-    user_id: str,
-    file_id: str,
-    topics_list: List[str],
-    page_number: Optional[str] = None,
-) -> dict:
-    """
-    One-call update after you extract topics for a file (or a page).
-    Uses your existing helpers:
-      - update_knowledge_map_nodes_for_user
-      - update_knowledge_map_node_document_for_user
-      - update_knowledge_map_edges_for_file
-    Idempotent because insert_single_object handles upserts.
-    """
-    # Normalize + dedupe incoming topics
-    norm_topics = sorted(set(normalize_topic(t) for t in topics_list if t and t.strip()))
-    if not norm_topics:
-        return {"nodeIds": [], "edgesCreated": 0}
-
-    created_node_ids: List[str] = []
-    total_edges = 0
-
-    for topic in norm_topics:
-        # 1) Upsert node (deterministic id via your model + insert_single_object)
-        node = KnowledgeNodeModel(user_id=user_id, name=topic)
-        node = ObjectRepository.insert_single_object(
-            object_to_be_inserted=node, without_upsert_call=True
-        )
-        created_node_ids.append(node.id)
-        logger.debug(f"[KM] node upserted user={user_id} topic='{topic}' id={node.id}")
-
-        # 2) Link node -> file (provenance)
-        update_knowledge_map_node_document_for_user(
-            user_id=user_id, file_id=file_id, node_id=node.id, page_number=page_number or ""
-        )
-
-        total_edges += update_knowledge_map_edges_for_file(
-            user_id=user_id, file_id=file_id, node_id=node.id
-        )
-
-    logger.info(
-        f"[KM] file={file_id} user={user_id} nodes={len(created_node_ids)} edges_created={total_edges}"
-    )
-    return {"nodeIds": created_node_ids, "edgesCreated": total_edges}
-
-
 def get_all_nodes_for_file(user_id: str, file_id: str) -> List[str]:
     """
     All node_ids linked to this file for this user (deduped).
