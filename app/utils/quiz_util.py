@@ -31,28 +31,43 @@ from app.utils.g_gpt import fetch_response_from_model
 
 
 def get_list_of_quiz(
-    user_id: str, quiz_type: str, file_id: Optional[str] = None
-) -> List[QuizModel]:
+    user_id: str, quiz_type: str, file_id: Optional[str] = None, page: int = None, per_page: int = None
+) -> Tuple[List[QuizModel], int]:
+    quizzesCount = 0
     if quiz_type == "new":
         filters = [
             QuizModel.user_id == user_id,
-            QuizModel.has_started.is_(False),
+            QuizModel.has_started.is_(False)
         ]
         if file_id is not None:
             filters.append(QuizModel.file_id == file_id)
+            
         quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
             model=QuizModel,
             filters=and_(*tuple(filters)),
+            limit=(per_page if per_page else None),
+            offset=((page - 1) * per_page if page else None)
+        )
+        quizzesCount = query_manager.query_count_with_filter(
+            model=QuizModel,
+            filters=and_(*tuple(filters))
         )
     else:
         filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(True)]
         if file_id is not None:
             filters.append(QuizModel.file_id == file_id)
+        
         quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
             model=QuizModel,
             filters=and_(*tuple(filters)),
+            limit=(per_page if per_page else None),
+            offset=((page - 1) * per_page if page else None)
         )
-    return quiz_list_for_user
+        quizzesCount = query_manager.query_count_with_filter(
+            model=QuizModel,
+            filters=and_(*tuple(filters))
+        )
+    return quiz_list_for_user, quizzesCount
 
 
 def generate_quiz_for_file(file_id: str, user_id: str):
