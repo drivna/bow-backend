@@ -30,7 +30,7 @@ def create_or_update_activity_for_user(
         return
     if activity_type != "FLASHCARD":
         activity_exists.activity_description = activity_description
-        ObjectRepository.update_single_object(activity_description)
+        ObjectRepository.update_single_object(activity_exists)
         return
 
     existing_flashcards_count = activity_exists.activity_description.get("flashcard_count", 0)
