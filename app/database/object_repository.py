@@ -57,9 +57,7 @@ class ObjectRepository:
 
         """
         try:
-            existing_object = cls.get_object_by_id(
-                model=type(object_to_be_inserted), object_id=object_to_be_inserted.id  # type: ignore
-            )
+            existing_object = cls.get_object_by_id(model=type(object_to_be_inserted), object_id=object_to_be_inserted.id)  # type: ignore
             logger.info(f"Found existing object: {existing_object.id}")
 
             if existing_object is not None and not without_upsert_call:
@@ -72,9 +70,7 @@ class ObjectRepository:
             # create entry for archive table
             # cls.create_archive_entry_for_insert(object_to_be_inserted, user_id=user_id)
 
-        return cls.get_object_by_id(
-            model=type(object_to_be_inserted), object_id=object_to_be_inserted.id  # type: ignore
-        )
+        return cls.get_object_by_id(model=type(object_to_be_inserted), object_id=object_to_be_inserted.id)  # type: ignore
 
     @classmethod
     def get_object_by_id(cls, model: Type[T], object_id: str) -> T:

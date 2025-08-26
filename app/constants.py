@@ -342,6 +342,28 @@ class ChatGptPrompts:
         }
         Only include pages that have meaningful content."""
         return system_prompt
+    
+    @classmethod
+    def get_chat_prompt(cls, user_message: str, file_content: str = "") -> str:
+        """
+        Generates a prompt for the model to respond to the user's message using file content (if provided).
+
+        Args:
+            user_message (str): The message from the user (could be a question, instruction, or anything).
+            file_content (str): The content of the file to be used as context (optional).
+
+        Returns:
+            str: The full prompt to be sent to the model.
+        """
+        prompt = f"You are an expert helpful assistant. Respond to the user's message based on the given context.Note response should not be more than 60 words\n\n"
+        # If file content is provided, include it for context
+
+        if file_content:
+            prompt += f"Here is the file content for context:\n{file_content}\n\n"
+
+        prompt += f"User's message: {user_message}\n\nRespond appropriately based on the content."
+
+        return prompt
 
 
 class ChatGptMessagePayload:
@@ -452,6 +474,25 @@ class ChatGptMessagePayload:
             {"role": "system", "content": prompt},
             {"role": "user", "content": f"Decide relatedness for these topic pairs:\n{pairs_text}"},
         ]
+    @classmethod
+    def get_message_payload(cls, user_message: str, prompt:str) -> list:
+        """
+        Creates the message payload to send to the model, combining the system prompt and the user message.
+
+        Args:
+            user_message (str): The user's message.
+            file_content (str): The file content to provide as context.
+
+        Returns:
+            list: The message payload to send to the model.
+        """
+
+        message_payload = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_message}
+        ]
+        
+        return message_payload
 
 
 LOW_POOL_THRESHOLD: int = 3

@@ -24,6 +24,8 @@ from .models.knowledge_map_edges import KnowledgeEdgeModel
 from .models.knowledge_map_node_document import NodeDocumentModel
 from .models.knowledge_map_nodes import KnowledgeNodeModel
 from .models.activity import ActivityModel
+from .models.chats import ChatModel
+from .models.file_chats import FileChatModel
 
 Base.metadata.create_all(database_engine)
 
@@ -330,9 +332,7 @@ def get_first_row_by_partition_and_order(
             subquery = (
                 session.query(
                     *model,
-                    func.row_number()
-                    .over(partition_by=(partition_by), order_by=order_by)  # type: ignore[no-untyped-call]
-                    .label("row_num"),
+                    func.row_number().over(partition_by=(partition_by), order_by=order_by).label("row_num"),  # type: ignore[no-untyped-call]
                 )
                 .filter(filters)
                 .subquery()
