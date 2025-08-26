@@ -39,6 +39,8 @@ class QuizRoutes(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("fileId", help="FileId", required=False)
     parser.add_argument("quizType", help="QuizType", required=True)
+    parser.add_argument("page", help="Page Number", type=int, required=False)
+    parser.add_argument("perPage", help="Count per page", type=int, required=False)
 
     @quiz_api_ns.expect(parser)
     @authenticate_user
@@ -46,6 +48,8 @@ class QuizRoutes(Resource):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
         quiz_type: str = args.get("quizType")
+        page: int = args.get("page", 1)
+        per_page: int = args.get("perPage", 10)
         user_id: str = request.user_id
         # user_id: str = "user_17ae337cff"
         # if file_id is None:
@@ -58,14 +62,23 @@ class QuizRoutes(Resource):
                 "data": [],
             }, 400
 
-        quiz_list_for_user: List[QuizModel] = get_list_of_quiz(
-            user_id=user_id, file_id=file_id, quiz_type=quiz_type
+        [quiz_list_for_user, total_count] = get_list_of_quiz(
+            user_id=user_id, file_id=file_id, quiz_type=quiz_type, page=page, per_page=per_page
         )
+
+        if page is not None and per_page is not None:
+            hasNext: bool = page * per_page < total_count
+        else:
+            hasNext = False
 
         return {
             "error": None,
             "message": "Quiz generated successfully",
-            "data": [quiz.to_dict() for quiz in quiz_list_for_user],
+            "data": {
+                "quizzes": [quiz.to_dict() for quiz in quiz_list_for_user],
+                "countTotalQuizzes": total_count,
+                "hasNext": page * per_page < total_count,
+            },
         }, 201
 
 
