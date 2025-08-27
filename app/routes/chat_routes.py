@@ -17,7 +17,7 @@ from app.utils.chat_util import send_reply_to_user
 chat_api_ns = Namespace("chats", description="APIs for Chats")
 
 
-@chat_api_ns.route("/")
+@chat_api_ns.route("/message")
 class ChatRoute(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("message", help="Message content", required=True)
