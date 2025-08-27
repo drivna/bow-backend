@@ -4,14 +4,15 @@ import time
 from typing import Any, Dict, List
 import openai
 
-
 from app.utils.jwt_utils import create_token
 from app.utils.ws_util import send_to_room
 
 openai.api_key = ""
 
 
-def fetch_and_stream_response_from_model(message_for_model, user_id: str):
+def fetch_and_stream_response_from_model(
+    message_for_model, user_id: str, type_key: str = "stream_message"
+):
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-4o",
@@ -26,23 +27,28 @@ def fetch_and_stream_response_from_model(message_for_model, user_id: str):
         def flush():
             nonlocal buf, buf_chars, last
             if buf:
-                send_to_room(user_id, "".join(buf), "message")
+                send_to_room(user_id, "".join(buf), "message", type_key)
                 buf, buf_chars, last = [], 0, time.time()
 
         for chunk in resp:
-            if "choices" not in chunk: 
+            if "choices" not in chunk:
                 continue
             ch = chunk["choices"][0]
             piece = ch.get("delta", {}).get("content")
             if piece:
-                buf.append(piece); buf_chars += len(piece)
-            if buf_chars >= FLUSH_CHARS or (time.time() - last) >= FLUSH_SECS or (piece and "\n" in piece):
+                buf.append(piece)
+                buf_chars += len(piece)
+            if (
+                buf_chars >= FLUSH_CHARS
+                or (time.time() - last) >= FLUSH_SECS
+                or (piece and "\n" in piece)
+            ):
                 flush()
             if ch.get("finish_reason"):
                 break
 
         flush()
-        send_to_room(user_id, "", "done")
+        send_to_room(user_id, "", "done", type_key)
     except Exception as e:
         send_to_room(user_id, f"Error: {e}", "error")
 

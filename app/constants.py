@@ -342,7 +342,7 @@ class ChatGptPrompts:
         }
         Only include pages that have meaningful content."""
         return system_prompt
-    
+
     @classmethod
     def get_chat_prompt(cls, user_message: str, file_content: str = "") -> str:
         """
@@ -474,8 +474,9 @@ class ChatGptMessagePayload:
             {"role": "system", "content": prompt},
             {"role": "user", "content": f"Decide relatedness for these topic pairs:\n{pairs_text}"},
         ]
+
     @classmethod
-    def get_message_payload(cls, user_message: str, prompt:str) -> list:
+    def get_message_payload(cls, user_message: str, prompt: str) -> list:
         """
         Creates the message payload to send to the model, combining the system prompt and the user message.
 
@@ -489,9 +490,9 @@ class ChatGptMessagePayload:
 
         message_payload = [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": user_message}
+            {"role": "user", "content": user_message},
         ]
-        
+
         return message_payload
 
 

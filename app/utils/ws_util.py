@@ -4,11 +4,13 @@ from loguru import logger
 socket_client = SocketIO(message_queue="redis://localhost:6379/1")
 
 
-def send_to_room(user_id: str, message: str, message_type: str = "message"):
+def send_to_room(
+    user_id: str, message: str, message_type: str = "message", key: str = "stream_message"
+):
     logger.info(f"Sending: {message} to socker room for user_id: {user_id}")
     room = f"user_{user_id}"
     payload = {"data": message, "type": message_type, "user_id": user_id}
-    socket_client.emit("stream_message", payload, room=room)
+    socket_client.emit(key, payload, room=room)
 
 
 # def send_to_socket(message, user_id, token, message_type="message"):
