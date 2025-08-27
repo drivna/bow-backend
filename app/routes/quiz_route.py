@@ -77,7 +77,7 @@ class QuizRoutes(Resource):
             "data": {
                 "quizzes": [quiz.to_dict() for quiz in quiz_list_for_user],
                 "countTotalQuizzes": total_count,
-                "hasNext": page * per_page < total_count,
+                "hasNext": hasNext,
             },
         }, 201
 
