@@ -1,5 +1,5 @@
 from app.constants import ChatGptMessagePayload, ChatGptPrompts
-from app.utils.g_gpt import fetch_and_stream_response_from_model
+from app.utils.c_gpt import fetch_and_stream_response_from_model
 
 
 def send_reply_to_user(user_message:str, file_content:str, user_id:str):
