@@ -86,7 +86,7 @@ class FileParsingRoutes(Resource):
             file_id=saved_file.id, file_name=uploaded_file.filename, user_id=user_id
         )
 
-        send_to_room(user_id=user_id, message='Hello! Welcome to Bow')
+        send_to_room(user_id=user_id, message="Hello! Welcome to Bow", key='chat')
 
         return {
             "error": None,
