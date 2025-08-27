@@ -17,6 +17,7 @@ from app.utils.file_util import process_and_create_action_items_for_file
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
 from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
+from app.utils.ws_util import send_to_room
 
 file_api_ns = Namespace("files", description="APIs for file upload and parsing")
 
@@ -84,6 +85,8 @@ class FileParsingRoutes(Resource):
         create_activity_for_file_read(
             file_id=saved_file.id, file_name=uploaded_file.filename, user_id=user_id
         )
+
+        send_to_room(user_id=user_id, message='Hello! Welcome to Bow')
 
         return {
             "error": None,
