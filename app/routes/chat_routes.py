@@ -17,7 +17,7 @@ from app.utils.chat_util import send_reply_to_user
 chat_api_ns = Namespace("chats", description="APIs for Chats")
 
 
-@chat_api_ns.route("/chat")
+@chat_api_ns.route("/")
 class ChatRoute(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("message", help="Message content", required=True)
@@ -72,7 +72,7 @@ class ChatRoute(Resource):
         }, 201
 
 
-@chat_api_ns.route("/chats")
+@chat_api_ns.route("/")
 class FileChatRoute(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("fileId", help="File ID", required=False)
