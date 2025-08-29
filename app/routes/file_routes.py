@@ -7,11 +7,13 @@ import os
 import threading
 from flask_restx.reqparse import ParseResult, RequestParser
 
+from app.constants import QUEUE_MODE_ON
 from app.database import query_manager
 from app.database.models.file import FileModel
 from app.database.models.file_topics import FileTopicModel
 from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
+from app.queue.redis_queue import enqueue_job
 from app.utils.activity_util import create_activity_for_file_read
 from app.utils.file_util import process_and_create_action_items_for_file
 from app.utils.pdf_util import get_file_hash, read_pdf_text
@@ -76,17 +78,20 @@ class FileParsingRoutes(Resource):
             return {"error": str(e), "message": "Failed to save the file"}, 500
 
         if is_new_created_file is True:
-            thread = threading.Thread(
-                target=process_and_create_action_items_for_file,
-                kwargs={"file_object": file_object, "user_id": user_id},
-            )
-            thread.start()
+            if not QUEUE_MODE_ON:
+                thread = threading.Thread(
+                    target=process_and_create_action_items_for_file,
+                    kwargs={"file_id": saved_file.id, "user_id": user_id},
+                )
+                thread.start()
+            else:
+                enqueue_job("process_file", {"file_id": saved_file.id, "user_id": user_id})
 
         create_activity_for_file_read(
             file_id=saved_file.id, file_name=uploaded_file.filename, user_id=user_id
         )
 
-        send_to_room(user_id=user_id, message="Hello! Welcome to Bow", key='chat')
+        send_to_room(user_id=user_id, message="Hello! Welcome to Bow", key="chat")
 
         return {
             "error": None,

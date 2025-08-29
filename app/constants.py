@@ -498,3 +498,4 @@ class ChatGptMessagePayload:
 
 LOW_POOL_THRESHOLD: int = 3
 TOTAL_QUIZ_QUESTIONS: int = 10
+QUEUE_MODE_ON: int = 0
