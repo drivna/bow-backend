@@ -56,7 +56,13 @@ class ChatRoute(Resource):
 
         file: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
 
-        send_reply_to_user(user_message=message, file_content=file.file_content, user_id=user_id)
+        send_reply_to_user(
+            user_message=message,
+            file_content=file.file_content,
+            user_id=user_id,
+            file_id=file_id,
+            chat_id=chat_entry.id,
+        )
 
         return {
             "error": None,
@@ -66,7 +72,7 @@ class ChatRoute(Resource):
                 "message": chat_entry.message,
                 "userId": chat_entry.user_id,
                 "fileId": file_id if file_id else None,
-                'is_from_system': chat_entry.is_from_system
+                "is_from_system": chat_entry.is_from_system,
             },
         }, 201
 
@@ -126,8 +132,7 @@ class FileChatRoute(Resource):
                 "message": chat.message,
                 "uploaded_at": chat.updated_at.isoformat(),
                 "file_id": file_chat.file_id if file_chat else None,
-                'is_from_system': chat.is_from_system
-
+                "is_from_system": chat.is_from_system,
             }
             response.append(res)
 
