@@ -50,14 +50,12 @@ class ChatRoute(Resource):
                     "data": None,
                 }, 404
 
-            file_chat_entry = FileChatModel(
-                user_id=user_id, chat_id=chat_entry.id, file_id=file_id
-            )
+            file_chat_entry = FileChatModel(user_id=user_id, chat_id=chat_entry.id, file_id=file_id)
 
             ObjectRepository.insert_single_object(file_chat_entry)
 
         file: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
-        
+
         send_reply_to_user(user_message=message, file_content=file.file_content, user_id=user_id)
 
         return {
@@ -68,6 +66,7 @@ class ChatRoute(Resource):
                 "message": chat_entry.message,
                 "userId": chat_entry.user_id,
                 "fileId": file_id if file_id else None,
+                'is_from_system': chat_entry.is_from_system
             },
         }, 201
 
@@ -77,7 +76,9 @@ class FileChatRoute(Resource):
     parser: RequestParser = RequestParser()
     parser.add_argument("fileId", help="File ID", required=False)
     parser.add_argument("page", help="Page number", required=False, type=int, default=1)
-    parser.add_argument("per_page", help="Number of chats per page", required=False, type=int, default=100)
+    parser.add_argument(
+        "per_page", help="Number of chats per page", required=False, type=int, default=100
+    )
 
     @chat_api_ns.expect(parser)
     @authenticate_user
@@ -94,8 +95,7 @@ class FileChatRoute(Resource):
         page = args.get("page")
         per_page = args.get("per_page")
 
-
-        filters = (ChatModel.user_id == user_id)
+        filters = ChatModel.user_id == user_id
 
         if file_id:
             filters = (FileChatModel.file_id == file_id) & filters
@@ -110,9 +110,9 @@ class FileChatRoute(Resource):
         chats: List[Tuple[ChatModel, FileChatModel]] = query_manager.query_with_join_and_filter(
             model=(ChatModel, FileChatModel),
             join=join,
-            isouter=True, 
+            isouter=True,
             filters=filters,
-            order_by=order_by,  
+            order_by=order_by,
             limit=limit,
             offset=offset,
         )
@@ -125,7 +125,7 @@ class FileChatRoute(Resource):
                 "id": chat.id,
                 "message": chat.message,
                 "uploaded_at": chat.updated_at.isoformat(),
-                'file_id': file_chat.file_id if file_chat else None
+                "file_id": file_chat.file_id if file_chat else None,
             }
             response.append(res)
 
