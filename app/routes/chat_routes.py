@@ -61,7 +61,6 @@ class ChatRoute(Resource):
             file_content=file.file_content,
             user_id=user_id,
             file_id=file_id,
-            chat_id=chat_entry.id,
         )
 
         return {
@@ -122,6 +121,7 @@ class FileChatRoute(Resource):
             limit=limit,
             offset=offset,
         )
+        
 
         response = []
         for row in chats:
