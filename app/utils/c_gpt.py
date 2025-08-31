@@ -13,6 +13,7 @@ openai.api_key = ""
 def fetch_and_stream_response_from_model(
     message_for_model, user_id: str, type_key: str = "stream_message"
 ):
+    message_streamed : str = ''
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-4o",
@@ -27,6 +28,8 @@ def fetch_and_stream_response_from_model(
         def flush():
             nonlocal buf, buf_chars, last
             if buf:
+                message_streamed += "".join(buf) 
+                message_streamed += " "
                 send_to_room(user_id, "".join(buf), "message", type_key)
                 buf, buf_chars, last = [], 0, time.time()
 
@@ -51,6 +54,7 @@ def fetch_and_stream_response_from_model(
         send_to_room(user_id, "", "done", type_key)
     except Exception as e:
         send_to_room(user_id, f"Error: {e}", "error")
+    return message_streamed
 
 
 def fetch_response_from_model(message_for_model: List[Dict[str, Any]]):
