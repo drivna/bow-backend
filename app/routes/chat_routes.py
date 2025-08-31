@@ -126,6 +126,8 @@ class FileChatRoute(Resource):
                 "message": chat.message,
                 "uploaded_at": chat.updated_at.isoformat(),
                 "file_id": file_chat.file_id if file_chat else None,
+                'is_from_system': chat.is_from_system
+
             }
             response.append(res)
 
