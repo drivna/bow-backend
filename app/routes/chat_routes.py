@@ -121,7 +121,18 @@ class FileChatRoute(Resource):
             limit=limit,
             offset=offset,
         )
-        
+        total_count = query_manager.query_count_with_join_filter(
+                model=(ChatModel, FileChatModel),
+                join=join,
+                isouter=True,
+                filters=filters,
+        )
+
+            
+        if page is not None and per_page is not None:
+            hasNext: bool = page * per_page < total_count
+        else:
+            hasNext = False
 
         response = []
         for row in chats:
@@ -139,5 +150,5 @@ class FileChatRoute(Resource):
         return {
             "error": None,
             "message": "Chats fetched successfully",
-            "data": response,
+            "data": { "messages": response, "hasNext": hasNext, "countTotalChats": total_count },
         }, 200
