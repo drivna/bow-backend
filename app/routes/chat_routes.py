@@ -121,20 +121,13 @@ class FileChatRoute(Resource):
             limit=limit,
             offset=offset,
         )
-        
-        if file_id:
-            new_chats: List[Tuple[ChatModel, FileChatModel]] = query_manager.query_with_join_and_filter(
+        total_count = query_manager.query_count_with_join_filter(
                 model=(ChatModel, FileChatModel),
                 join=join,
                 isouter=True,
                 filters=filters,
-                order_by=order_by
-            )
-            total_count: int = len(new_chats)
-        else: 
-            total_count: int = query_manager.query_count_with_filter(
-                model=ChatModel, filters=filters
-            )
+        )
+
             
         if page is not None and per_page is not None:
             hasNext: bool = page * per_page < total_count
