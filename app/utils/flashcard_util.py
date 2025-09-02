@@ -8,7 +8,7 @@ from app.database.object_repository import ObjectRepository
 from sqlalchemy.orm import joinedload
 
 from app.utils.notification_util import create_notification_for_flashcard
-from app.utils.q_gpt import fetch_response_from_model
+from app.utils.g_gpt import fetch_response_from_model
 from app.utils.qna_util import insert_flashcard_qna_in_db
 
 
