@@ -15,6 +15,7 @@ from app.routes.flashcard_routes import flashcard_api_ns
 from app.routes.quiz_route import quiz_api_ns
 from app.routes.chat_routes import chat_api_ns
 from app.routes.internal_routes import internal_api_ns
+from app.routes.notification_routes import notification_api_ns
 
 environment = os.getenv("ENVIRONMENT")
 app = Flask(__name__)
@@ -37,3 +38,4 @@ api.add_namespace(flashcard_api_ns)
 api.add_namespace(quiz_api_ns)
 api.add_namespace(chat_api_ns)
 api.add_namespace(internal_api_ns)
+api.add_namespace(notification_api_ns)

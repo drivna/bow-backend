@@ -25,6 +25,7 @@ from .models.knowledge_map_node_document import NodeDocumentModel
 from .models.knowledge_map_nodes import KnowledgeNodeModel
 from .models.activity import ActivityModel
 from .models.chats import ChatModel
+from .models.noitifications import NotificationModel
 from .models.file_chats import FileChatModel
 
 Base.metadata.create_all(database_engine)

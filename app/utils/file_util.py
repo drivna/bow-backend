@@ -23,6 +23,6 @@ def process_and_create_action_items_for_file(file_id: str, user_id: str):
 
     generate_flashcard_for_file(file_id=file_id, user_id=user_id)
 
-    logger.info(f'Generating flashcards for file: {file_id}')
+    logger.info(f"Generating flashcards for file: {file_id}")
 
     return

@@ -91,7 +91,9 @@ class ActionFlashCardRoutes(Resource):
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
         )
-        response, total_flashcard_count = generate_flashcard_for_file(file_id=file_id, user_id=user_id)
+        response, total_flashcard_count = generate_flashcard_for_file(
+            file_id=file_id, user_id=user_id
+        )
 
         create_activity_for_flashcard(
             file_id=file_id,

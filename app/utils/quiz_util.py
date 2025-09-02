@@ -25,6 +25,8 @@ from app.database.object_repository import ObjectRepository
 from app.database.models.quiz_answers import QuizUserAnswersModel
 from sqlalchemy.orm import joinedload
 
+from app.utils.notification_util import create_notification_for_quiz
+
 load_dotenv()
 environment = os.getenv("ENVIRONMENT")
 from app.utils.g_gpt import fetch_response_from_model
@@ -77,7 +79,7 @@ def generate_quiz_for_file(file_id: str, user_id: str):
         existing_quiz_names,
     ) = get_all_questions_generated_for_file(file_id=file_id)
 
-    def fetch_and_insert_quiz_in_db(topics: List[str]):
+    def fetch_and_insert_quiz_in_db(topics: List[str], file_id: str, file_name: str, user_id: str):
         response = generate_quiz_for_difficulty(
             file_content=file_object.file_content,
             prev_quiz_names=existing_quiz_names,
@@ -100,9 +102,19 @@ def generate_quiz_for_file(file_id: str, user_id: str):
 
             logger.info(f"Generated quiz: {quiz.id} for file: {file_id}")
 
+            create_notification_for_quiz(
+                quiz_id=created_quiz.id,
+                file_id=file_id,
+                file_name=file_name,
+                user_id=user_id,
+                quiz_name=created_quiz.quiz_name,
+            )
+
     logger.info(f"Generating quiz for entire file: {file_id}")
 
-    fetch_and_insert_quiz_in_db(topics=[])
+    fetch_and_insert_quiz_in_db(
+        topics=[], file_id=file_id, user_id=user_id, file_name=file_object.file_name
+    )
 
     topics_for_file: List[FileTopicModel] = query_manager.query_with_filter(
         model=FileTopicModel,
@@ -117,11 +129,15 @@ def generate_quiz_for_file(file_id: str, user_id: str):
         mid = len(topics) // 2
         logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[:mid]}")
 
-        fetch_and_insert_quiz_in_db(topics=topics[:mid])
+        fetch_and_insert_quiz_in_db(
+            topics=topics[:mid], file_id=file_id, user_id=user_id, file_name=file_object.file_name
+        )
 
         logger.info(f"Generating quiz for entire file: {file_id} for topics: {topics[mid:]}")
 
-        fetch_and_insert_quiz_in_db(topics=topics[mid:])
+        fetch_and_insert_quiz_in_db(
+            topics=topics[mid:], file_id=file_id, user_id=user_id, file_name=file_object.file_name
+        )
 
     return
 

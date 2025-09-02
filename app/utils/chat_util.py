@@ -8,9 +8,7 @@ from app.database.object_repository import ObjectRepository
 from app.utils.c_gpt import fetch_and_stream_response_from_model
 
 
-def send_reply_to_user(
-    user_message: str, file_content: str, user_id: str, file_id: str
-):
+def send_reply_to_user(user_message: str, file_content: str, user_id: str, file_id: str):
     prompt: str = ChatGptPrompts.get_chat_prompt(
         user_message=user_message, file_content=file_content
     )

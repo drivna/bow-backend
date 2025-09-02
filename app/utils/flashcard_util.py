@@ -7,14 +7,13 @@ from app.database.models.flashcards import FlashCardModel
 from app.database.object_repository import ObjectRepository
 from sqlalchemy.orm import joinedload
 
+from app.utils.notification_util import create_notification_for_flashcard
 from app.utils.q_gpt import fetch_response_from_model
 from app.utils.qna_util import insert_flashcard_qna_in_db
 
 
-def generate_flashcard_for_file(file_id:str, user_id:str):
-    file_object: FileModel = ObjectRepository.get_object_by_id(
-        model=FileModel, object_id=file_id
-    )
+def generate_flashcard_for_file(file_id: str, user_id: str):
+    file_object: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
     existing_flashcards_for_file: List[FlashCardModel] = query_manager.query_with_filter(
         model=FlashCardModel, filters=(FlashCardModel.file_id == file_id)
     )
@@ -48,4 +47,12 @@ def generate_flashcard_for_file(file_id:str, user_id:str):
             question=question, answer=answer, flashcard_id=inserted_flashcard.id
         )
         total_flashcard_count += 1
+
+    create_notification_for_flashcard(
+        flashcard_id=flashcard.id,
+        file_id=file_id,
+        file_name=file_object.file_name,
+        flashcard_name="",
+    )
+
     return response, total_flashcard_count
