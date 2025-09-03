@@ -48,7 +48,6 @@ class NotificationRoutes(Resource):
         )
         has_next: bool = page * per_page < total_notifications_count
 
-
         response: List[Dict[str, Any]] = []
         for notif in notifications:
             res = {
@@ -66,7 +65,7 @@ class NotificationRoutes(Resource):
             "message": "Notifications fetched successfully",
             "data": {
                 "notifications": response,
-                'has_next':has_next,
-                'totalCount':total_notifications_count
+                "has_next": has_next,
+                "totalCount": total_notifications_count,
             },
         }, 200

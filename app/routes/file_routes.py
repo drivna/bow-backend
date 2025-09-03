@@ -15,7 +15,10 @@ from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
 from app.queue.redis_queue import enqueue_job
 from app.utils.activity_util import create_activity_for_file_read
-from app.utils.file_util import process_and_create_action_items_for_file
+from app.utils.file_util import (
+    process_and_create_action_items_for_file_in_bg,
+    process_and_create_action_items_for_file_in_fg,
+)
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
 from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
@@ -77,15 +80,18 @@ class FileParsingRoutes(Resource):
         except Exception as e:
             return {"error": str(e), "message": "Failed to save the file"}, 500
 
-        if is_new_created_file is True:
+        if is_new_created_file is False:
             if not QUEUE_MODE_ON:
                 thread = threading.Thread(
-                    target=process_and_create_action_items_for_file,
+                    target=process_and_create_action_items_for_file_in_fg,
                     kwargs={"file_id": saved_file.id, "user_id": user_id},
                 )
                 thread.start()
             else:
-                enqueue_job("process_file", {"file_id": saved_file.id, "user_id": user_id})
+                print("Sending to queue")
+                process_and_create_action_items_for_file_in_bg.apply_async(
+                    kwargs={"file_id": saved_file.id, "user_id": user_id}
+                )
 
         create_activity_for_file_read(
             file_id=saved_file.id, file_name=uploaded_file.filename, user_id=user_id

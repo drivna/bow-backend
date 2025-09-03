@@ -1,4 +1,7 @@
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
+
+from loguru import logger
+from app.celery_app import celery_app
 from app.database.models.noitifications import NotificationModel
 from app.database.object_repository import ObjectRepository
 from app.utils.ws_util import send_to_room
@@ -60,6 +63,8 @@ def create_notification_for_flashcard(
     )
     create_notification(user_id=user_id, description=description, message="Flashcard Generated")
 
+    schedule_notification(user_id=user_id, description=description)
+
 
 def create_notification(user_id: str, description: str, message: str):
     """
@@ -82,6 +87,23 @@ def create_notification(user_id: str, description: str, message: str):
         object_to_be_inserted=notification
     )
 
-    send_to_room(user_id=user_id, message=description, message_type="message", key="notification")
-
     return inserted_notification
+
+
+def schedule_notification(user_id: str, description: Dict[str, Any], delay_seconds: int = 600):
+    notify_user.apply_async(
+        kwargs={"user_id": user_id, "description": description},
+        countdown=delay_seconds
+    )
+
+
+@celery_app.task(bind=True)
+def notify_user(self, user_id: str, description: Dict[str, Any]):
+    logger.info(f"Notifying user: {user_id}, description: {description}")
+    send_to_room(
+        user_id=user_id,
+        message=description,
+        message_type="message",
+        key="notification"
+    )
+    return

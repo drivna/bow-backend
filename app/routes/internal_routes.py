@@ -1,60 +1,44 @@
-from typing import Any, Dict, List
+import json
 from flask_restx import Namespace, Resource
-from flask import request
-from app.database.redis_driver import redis_cursor
+from flask import jsonify
+import redis
+from app import celery_app
+from app.database.redis_driver import redis_queue_cursor
 
 internal_api_ns = Namespace("Internal", description="APIs for internal queue analytics")
 
 
-@internal_api_ns.route("/jobs/analytics")
-class JobsAnalyticsRoutes(Resource):
-    def get(self):
-        try:
-            user_id = request.user_id
-        except Exception:
-            user_id = "user_17ae337cff"
+@internal_api_ns.route("/dashboard")
+class FileParsingRoutes(Resource):
+    def get():
+        queue_name = celery_app.conf.task_default_queue
+        pending_count = redis_queue_cursor.llen(queue_name)
 
-        try:
-            job_keys = redis_cursor.keys("job:*")
-            jobs = [
-                redis_cursor.hgetall(k)
-                for k in job_keys
-                if redis_cursor.hgetall(k).get("user_id") == user_id
-            ]
+        insp = celery_app.control.inspect()
+        active = insp.active() or {}
+        reserved = insp.reserved() or {}
+        scheduled = insp.scheduled() or {}
 
-            status_counts: Dict[str, int] = {}
-            for job in jobs:
-                status = job.get("status", "unknown")
-                status_counts[status] = status_counts.get(status, 0) + 1
-
-            # Format response
-            jobs_response: List[Dict[str, Any]] = []
-            for job in jobs:
-                job_res = {
-                    "id": job.get("id"),
-                    "task_type": job.get("task_type"),
-                    "status": job.get("status"),
-                    "retry_count": int(job.get("retry_count", 0)),
-                    "created_at": job.get("created_at"),
-                    "updated_at": job.get("updated_at"),
+        meta_keys = redis_queue_cursor.keys("celery-task-meta-*")
+        last_10 = []
+        for key in meta_keys[-10:]:
+            data = json.loads(redis_queue_cursor.get(key))
+            last_10.append(
+                {
+                    "task_id": data.get("task_id"),
+                    "status": data.get("status"),
+                    "result": data.get("result"),
+                    "date_done": data.get("date_done"),
                 }
-                jobs_response.append(job_res)
+            )
 
-            response = {
-                "total_jobs": len(jobs),
-                "status_counts": status_counts,
-                "jobs": jobs_response,
+        return jsonify(
+            {
+                "queue_name": queue_name,
+                "pending": pending_count,
+                "active": active,
+                "reserved": reserved,
+                "scheduled": scheduled,
+                "recent_results": last_10,
             }
-
-            return {
-                "error": None,
-                "message": "Job analytics fetched successfully",
-                "data": response,
-            }, 200
-
-        except Exception as e:
-            return {
-                "error": str(e),
-                "message": "Failed to fetch job analytics",
-                "data": None,
-            }, 500
+        )
