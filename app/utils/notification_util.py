@@ -92,18 +92,12 @@ def create_notification(user_id: str, description: str, message: str):
 
 def schedule_notification(user_id: str, description: Dict[str, Any], delay_seconds: int = 600):
     notify_user.apply_async(
-        kwargs={"user_id": user_id, "description": description},
-        countdown=delay_seconds
+        kwargs={"user_id": user_id, "description": description}, countdown=delay_seconds
     )
 
 
 @celery_app.task(bind=True)
 def notify_user(self, user_id: str, description: Dict[str, Any]):
     logger.info(f"Notifying user: {user_id}, description: {description}")
-    send_to_room(
-        user_id=user_id,
-        message=description,
-        message_type="message",
-        key="notification"
-    )
+    send_to_room(user_id=user_id, message=description, message_type="message", key="notification")
     return

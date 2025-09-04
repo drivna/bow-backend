@@ -26,6 +26,9 @@ class QuizModel(Base):
     quiz_summary: Mapped[Dict[str, Any]] = mapped_column("SUMMARY", JSON, default=dict)
 
     has_started: Mapped[bool] = mapped_column("HAS_STARTED", Boolean, nullable=False, default=False)
+    has_completed: Mapped[bool] = mapped_column(
+        "HAS_COMPLETED", Boolean, nullable=False, default=False
+    )
 
     # Relationship to QuizQnAModel
     quiz_qna_items = relationship("QuizQnAModel", back_populates="quiz")

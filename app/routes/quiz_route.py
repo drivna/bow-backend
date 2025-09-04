@@ -55,7 +55,7 @@ class QuizRoutes(Resource):
         # if file_id is None:
         #     file_id='file_be44cbafe5'
 
-        if quiz_type not in ["new", "old"]:
+        if quiz_type not in ["new", "old", "live"]:
             return {
                 "error": None,
                 "message": "Invalid Quiz Type",
@@ -242,6 +242,9 @@ class QuizAnswersRoutes(Resource):
                     quiz_summary=quiz_object.quiz_summary,
                     user_id=user_id,
                 )
+
+                quiz_object.has_completed = True
+                ObjectRepository.update_single_object(quiz_object)
 
                 return {
                     "error": None,

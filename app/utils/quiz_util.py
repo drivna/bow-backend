@@ -39,36 +39,33 @@ def get_list_of_quiz(
     page: int = None,
     per_page: int = None,
 ) -> Tuple[List[QuizModel], int]:
-    quizzesCount = 0
-    if quiz_type == "new":
-        filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(False)]
-        if file_id is not None:
-            filters.append(QuizModel.file_id == file_id)
+    has_started = quiz_type != "new"
+    has_completed = quiz_type == "old"
 
-        quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
-            model=QuizModel,
-            filters=and_(*tuple(filters)),
-            limit=(per_page if per_page else None),
-            offset=((page - 1) * per_page if page else None),
-        )
-        quizzesCount = query_manager.query_count_with_filter(
-            model=QuizModel, filters=and_(*tuple(filters))
-        )
-    else:
-        filters = [QuizModel.user_id == user_id, QuizModel.has_started.is_(True)]
-        if file_id is not None:
-            filters.append(QuizModel.file_id == file_id)
+    filters = [
+        QuizModel.user_id == user_id,
+        QuizModel.has_started.is_(has_started),
+        QuizModel.has_completed.is_(has_completed),
+    ]
+    if file_id is not None:
+        filters.append(QuizModel.file_id == file_id)
 
-        quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
-            model=QuizModel,
-            filters=and_(*tuple(filters)),
-            limit=(per_page if per_page else None),
-            offset=((page - 1) * per_page if page else None),
-        )
-        quizzesCount = query_manager.query_count_with_filter(
-            model=QuizModel, filters=and_(*tuple(filters))
-        )
-    return quiz_list_for_user, quizzesCount
+    limit = per_page if per_page else None
+    offset = ((page - 1) * per_page) if page else None
+
+    quiz_list_for_user: List[QuizModel] = query_manager.query_with_filter(
+        model=QuizModel,
+        filters=and_(*filters),
+        limit=limit,
+        offset=offset,
+    )
+
+    quizzes_count = query_manager.query_count_with_filter(
+        model=QuizModel,
+        filters=and_(*filters),
+    )
+
+    return quiz_list_for_user, quizzes_count
 
 
 def generate_quiz_for_file(file_id: str, user_id: str):
