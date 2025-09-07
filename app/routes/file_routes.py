@@ -7,6 +7,7 @@ import os
 import threading
 from flask_restx.reqparse import ParseResult, RequestParser
 
+from app.config import CUSTOM_USER_ID
 from app.constants import QUEUE_MODE_ON
 from app.database import query_manager
 from app.database.models.file import FileModel
@@ -117,7 +118,7 @@ class FileParsingRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         files_of_user: List[FileModel] = query_manager.query_with_filter(
             model=FileModel,
@@ -169,7 +170,7 @@ class FileTopicRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         args: ParseResult = self.parser.parse_args()
         topic_name: str = args.get("topicName")

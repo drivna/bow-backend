@@ -1,10 +1,11 @@
 import os
 from celery import Celery
+from app.config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
 
 
 def make_celery():
-    broker = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-    backend = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    broker = CELERY_BROKER_URL
+    backend = CELERY_RESULT_BACKEND
 
     celery = Celery(
         "bow",

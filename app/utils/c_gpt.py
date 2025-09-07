@@ -4,16 +4,17 @@ import time
 from typing import Any, Dict, List
 import openai
 
+from app.config import OPEN_AI_API_KEY
 from app.utils.jwt_utils import create_token
 from app.utils.ws_util import send_to_room
 
-openai.api_key = ""
+openai.api_key = OPEN_AI_API_KEY
 
 
 def fetch_and_stream_response_from_model(
     message_for_model, user_id: str, type_key: str = "stream_message"
 ):
-    message_streamed: str = ''
+    message_streamed: str = ""
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-4o",
@@ -56,7 +57,6 @@ def fetch_and_stream_response_from_model(
     except Exception as e:
         send_to_room(user_id, f"Error: {e}", "error")
     return message_streamed
-
 
 
 def fetch_response_from_model(message_for_model: List[Dict[str, Any]]):

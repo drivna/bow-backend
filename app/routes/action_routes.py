@@ -4,6 +4,7 @@ from flask_restx.reqparse import ParseResult, RequestParser
 from loguru import logger
 from sqlalchemy.orm import joinedload
 
+from app.config import CUSTOM_USER_ID
 from app.constants import ChatGptPrompts, ChatGptMessagePayload
 from app.database import query_manager
 from app.database.models.file import FileModel
@@ -87,7 +88,7 @@ class ActionFlashCardRoutes(Resource):
         try:
             user_id: str = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
         file_object: FileModel = ObjectRepository.get_object_by_id(
             model=FileModel, object_id=file_id
         )
@@ -155,7 +156,7 @@ class ActionKnowledgeMapRoutes(Resource):
         try:
             user_id: str = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         data = get_knowledge_map_for_user(user_id=user_id, file_id=file_id)
 
@@ -172,7 +173,7 @@ class ActionKnowledgeMapRoutes(Resource):
         try:
             user_id: str = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         file: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
         if not file:

@@ -5,6 +5,7 @@ from flask_restx.reqparse import ParseResult, RequestParser
 from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.orm import joinedload
+from app.config import CUSTOM_USER_ID
 from app.database import query_manager
 from app.database.models.flashcards import FlashCardModel
 from app.database.models.qna import QNAModel
@@ -30,7 +31,7 @@ class FlashcardRoutes(Resource):
         try:
             user_id: str = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         flashcard_filters = [FlashCardModel.user_id == user_id]
         if file_id:

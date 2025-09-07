@@ -6,6 +6,7 @@ from flask_restx.reqparse import ParseResult, RequestParser
 from loguru import logger
 from sqlalchemy import and_, cast, not_
 from sqlalchemy.orm import joinedload
+from app.config import CUSTOM_USER_ID
 from app.database import query_manager
 from app.database.models.flashcards import FlashCardModel
 from app.database.models.qna import QNAModel
@@ -50,10 +51,10 @@ class QuizRoutes(Resource):
         quiz_type: str = args.get("quizType")
         page: int = args.get("page", 1)
         per_page: int = args.get("perPage", 10)
-        user_id: str = request.user_id
-        # user_id: str = "user_17ae337cff"
-        # if file_id is None:
-        #     file_id='file_be44cbafe5'
+        try:
+            user_id: str = request.user_id
+        except Exception:
+            user_id = CUSTOM_USER_ID
 
         if quiz_type not in ["new", "old", "live"]:
             return {

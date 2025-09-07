@@ -5,6 +5,7 @@ from flask import Response, after_this_request, request
 from loguru import logger
 from sqlalchemy import and_
 
+from app.config import CUSTOM_USER_ID
 from app.database import query_manager
 from app.database.models.activity import ActivityModel
 from app.database.models.user import UserModel
@@ -141,7 +142,7 @@ class UserActivityRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         args: ParseResult = self.parser.parse_args()
 
@@ -194,7 +195,7 @@ class UserProfileRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         user: UserModel = ObjectRepository.get_object_by_id(model=UserModel, object_id=user_id)
 

@@ -3,6 +3,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_restx.reqparse import RequestParser
 from sqlalchemy.exc import SQLAlchemyError
+from app.config import CUSTOM_USER_ID
 from app.database import query_manager
 from app.database.models.chats import ChatModel
 from app.database.models.file import FileModel
@@ -33,7 +34,7 @@ class ChatRoute(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         message = args.get("message")
         file_id = args.get("fileId")
@@ -95,7 +96,7 @@ class FileChatRoute(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
         file_id = args.get("fileId")
         page = args.get("page")
         per_page = args.get("per_page")

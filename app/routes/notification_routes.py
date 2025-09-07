@@ -3,6 +3,7 @@ from flask import request
 from flask_restx import Resource, Namespace
 from flask_restx.reqparse import RequestParser, ParseResult
 
+from app.config import CUSTOM_USER_ID
 from app.database import query_manager
 from app.database.models.noitifications import NotificationModel
 from app.middleware.auth import authenticate_user
@@ -26,7 +27,7 @@ class NotificationRoutes(Resource):
         try:
             user_id = request.user_id
         except Exception:
-            user_id = "user_17ae337cff"
+            user_id = CUSTOM_USER_ID
 
         args = self.notification_parser.parse_args()
         page = args.get("page", 1)
