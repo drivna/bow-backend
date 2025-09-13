@@ -14,12 +14,6 @@ echo "Flask environment: ${FLASK_ENV:-production}"
 # Wait for any dependencies if needed (can be extended)
 echo "Checking application health..."
 
-# Install any additional requirements if requirements.txt was updated
-if [ -f requirements.txt ]; then
-    echo "Installing/updating requirements..."
-    pip install --no-cache-dir -r requirements.txt
-fi
-
 # Run database migrations or setup if needed (can be extended)
 # python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()"
 
