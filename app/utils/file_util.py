@@ -2,6 +2,7 @@ from loguru import logger
 from app.celery_app import celery_app
 from app.database.models.file import FileModel
 from app.database.object_repository import ObjectRepository
+from app.database.qdrant import store_pdf_in_qdrant
 from app.utils.flashcard_util import generate_flashcard_for_file
 from app.utils.quiz_util import generate_quiz_for_file
 from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
@@ -65,3 +66,8 @@ def process_and_create_action_items_for_file_in_fg(file_id: str, user_id: str):
     logger.info(f"Generating flashcards for file: {file_id}")
 
     return
+
+
+def fetch_and_store_embeddings_for_pdf(file_content, user_id) -> None:
+    print("Inside fetch_and_store_embeddings_for_pdf")
+    store_pdf_in_qdrant(text_pages=file_content, user_id=user_id)

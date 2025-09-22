@@ -25,3 +25,8 @@ redis-cli:
 
 build: 
 	$(COMPOSE) build
+
+psql:
+	docker exec -it postgres-db psql -U postgres bow_db
+qdrant:
+	docker exec -it qdrant-db sh

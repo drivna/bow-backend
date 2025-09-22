@@ -17,6 +17,7 @@ from app.middleware.auth import authenticate_user
 from app.queue.redis_queue import enqueue_job
 from app.utils.activity_util import create_activity_for_file_read
 from app.utils.file_util import (
+    fetch_and_store_embeddings_for_pdf,
     process_and_create_action_items_for_file_in_bg,
     process_and_create_action_items_for_file_in_fg,
 )
@@ -53,12 +54,13 @@ class FileParsingRoutes(Resource):
             }, 400
 
         is_new_created_file: bool = True
-
+        text_pages_of_file = []
         try:
             file_bytes = uploaded_file.read()
             filename = f"{uploaded_file.filename}_{datetime.now().timestamp()}"  # NOTE: FIX THIS
 
             file_content = read_pdf_text(file_bytes)
+            text_pages_of_file = file_content
             file_content = [text.replace("\x00", "") for text in file_content]
             file_hash = get_file_hash(file_content=file_content)
             file_object = FileModel(
@@ -84,7 +86,9 @@ class FileParsingRoutes(Resource):
         except Exception as e:
             return {"error": str(e), "message": "Failed to save the file"}, 500
 
-        if is_new_created_file is False:
+        if is_new_created_file is True:
+            print("Going for async tasks")
+            fetch_and_store_embeddings_for_pdf(file_content=text_pages_of_file, user_id=user_id)
             if not QUEUE_MODE_ON:
                 thread = threading.Thread(
                     target=process_and_create_action_items_for_file_in_fg,
