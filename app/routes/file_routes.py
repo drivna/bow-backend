@@ -41,7 +41,10 @@ class FileParsingRoutes(Resource):
     @authenticate_user
     def post(self):
         uploaded_file = request.files.get("file")
-        user_id = request.user_id
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = CUSTOM_USER_ID
 
         if not uploaded_file:
             return {
