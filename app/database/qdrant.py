@@ -3,6 +3,7 @@ from qdrant_client import models
 import hashlib
 import openai
 from app.config import OPEN_AI_API_KEY, QDRANT_URL
+from qdrant_client.http import models as http_models
 
 client = QdrantClient(QDRANT_URL)
 
@@ -49,6 +50,40 @@ def store_pdf_in_qdrant(text_pages, user_id):
 
     client.upsert(collection_name="pdf_chunks", points=points)
 
+def search_context(query_text: str, user_id: str, top_k: int = 5):
+    """
+    Generate embedding for a user query and retrieve the top_k most similar PDF chunks
+    belonging to the given user_id.
+    """
+    # Creating embedding for the query
+    query_embedding = openai.Embedding.create(
+        input=query_text,
+        model="text-embedding-ada-002"
+    ).data[0].embedding
+    print(query_embedding)
+
+    # Building a filter for user_id
+    user_filter = http_models.Filter(
+        must=[
+            http_models.FieldCondition(
+                key="user_id",
+                match=http_models.MatchValue(value=user_id)
+            )
+        ]
+    )
+
+    # Searching in Qdrant
+    search_results = client.search(
+        collection_name="pdf_chunks",
+        query_vector=query_embedding,
+        limit=top_k,
+        query_filter=user_filter
+    )
+
+    # Extracting the content chunks
+    context_chunks = [hit.payload["content"] for hit in search_results]
+
+    return context_chunks
 
 """
 For Understanding

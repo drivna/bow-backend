@@ -5,12 +5,15 @@ from app.constants import ChatGptMessagePayload, ChatGptPrompts
 from app.database.models.chats import ChatModel
 from app.database.models.file_chats import FileChatModel
 from app.database.object_repository import ObjectRepository
+from app.database.qdrant import search_context
 from app.utils.c_gpt import fetch_and_stream_response_from_model
 
 
-def send_reply_to_user(user_message: str, file_content: str, user_id: str, file_id: str):
+def send_reply_to_user(user_message: str, user_id: str, file_id: str):
+    file_context_for_prompt = search_context(query_text=user_message, user_id=user_id)
+
     prompt: str = ChatGptPrompts.get_chat_prompt(
-        user_message=user_message, file_content=file_content
+        user_message=user_message, file_content=file_context_for_prompt
     )
     message_payload: str = ChatGptMessagePayload.get_message_payload(
         user_message=user_message, prompt=prompt
