@@ -23,6 +23,7 @@ from app.utils.file_util import (
 )
 from app.utils.pdf_util import get_file_hash, read_pdf_text
 from app.utils.quiz_util import generate_quiz_for_file
+from app.utils.storage_util import get_signed_url, upload_pdf_bytes
 from app.utils.topic_utils import generate_topics_for_file_and_update_knowledge_map
 from app.utils.ws_util import send_to_room
 
@@ -87,6 +88,9 @@ class FileParsingRoutes(Resource):
             return {"error": str(e), "message": "Failed to save the file"}, 500
 
         if is_new_created_file is True:
+            # Uploading to bucket
+            upload_pdf_bytes(file_bytes=file_bytes, destination_blob_name=saved_file.file_name)
+
             print("Going for async tasks")
             fetch_and_store_embeddings_for_pdf(file_content=text_pages_of_file, user_id=user_id)
             if not QUEUE_MODE_ON:
@@ -163,6 +167,39 @@ class FileParsingRoutes(Resource):
             "error": None,
             "message": "File uploaded, saved and parsed successfully",
             "data": response,
+        }, 201
+
+
+@file_api_ns.route("/signed_url")
+class FileParsingRoutes(Resource):
+    parser: RequestParser = RequestParser()
+    parser.add_argument("fileId", help="File Id", required=True)
+
+    @file_api_ns.expect(parser)
+    @authenticate_user
+    def get(self):
+        try:
+            user_id = request.user_id
+        except Exception:
+            user_id = CUSTOM_USER_ID
+
+        args: ParseResult = self.parser.parse_args()
+        file_id: str = args.get("fileId")
+
+        file: FileModel = ObjectRepository.get_object_by_id(model=FileModel, object_id=file_id)
+        if not file:
+            return {
+                "error": "NO_FILE_FOUND",
+                "message": "No file found",
+                "data": {},
+            }, 400
+
+        signed_url = get_signed_url(blob_name=file.file_name, expiration_days=1)
+
+        return {
+            "error": None,
+            "message": "File uploaded, saved and parsed successfully",
+            "data": {"url": signed_url},
         }, 201
 
 
