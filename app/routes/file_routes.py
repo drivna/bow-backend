@@ -110,6 +110,7 @@ class FileParsingRoutes(Resource):
         )
 
         send_to_room(user_id=user_id, message="Hello! Welcome to Bow", key="chat")
+        signed_url = get_signed_url(blob_name=saved_file.file_name, expiration_days=1)
 
         return {
             "error": None,
@@ -118,6 +119,7 @@ class FileParsingRoutes(Resource):
                 "file_name": saved_file.file_name,
                 "content": file_content,
                 "file_id": saved_file.id,
+                'signed_url': signed_url
             },
         }, 201
 
