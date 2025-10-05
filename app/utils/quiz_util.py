@@ -29,7 +29,7 @@ from app.utils.notification_util import create_notification_for_quiz
 
 load_dotenv()
 environment = os.getenv("ENVIRONMENT")
-from app.utils.g_gpt import fetch_response_from_model
+from app.utils.c_gpt import fetch_response_from_model
 
 
 def get_list_of_quiz(

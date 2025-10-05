@@ -16,7 +16,7 @@ from app.database.object_repository import ObjectRepository
 from app.middleware.auth import authenticate_user
 from app.utils.activity_util import create_activity_for_flashcard
 from app.utils.flashcard_util import generate_flashcard_for_file
-from app.utils.g_gpt import fetch_and_stream_response_from_model, fetch_response_from_model
+from app.utils.c_gpt import fetch_and_stream_response_from_model, fetch_response_from_model
 from typing import List, Dict, Any, Optional
 
 from app.utils.knwoledge_map_util import (

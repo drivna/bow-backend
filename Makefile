@@ -7,7 +7,7 @@ help: ## Show available commands
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 build: ## Build Flask container
-	$(COMPOSE) build
+	$(COMPOSE) build --no-cache
 
 build-worker: ## Build Celery worker container
 	$(COMPOSE) build worker
@@ -16,7 +16,7 @@ up-flask: ## Start Flask container
 	$(COMPOSE) up  flask-app flask-worker
 
 up-worker: ## Start Celery worker container
-	$(COMPOSE) up  worker
+	$(COMPOSE) up worker
 
 up: ## Start all containers
 	$(COMPOSE) up 

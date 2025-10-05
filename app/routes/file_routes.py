@@ -92,7 +92,6 @@ class FileParsingRoutes(Resource):
             upload_pdf_bytes(file_bytes=file_bytes, destination_blob_name=saved_file.file_name)
 
             print("Going for async tasks")
-            fetch_and_store_embeddings_for_pdf(file_content=text_pages_of_file, user_id=user_id)
             if not QUEUE_MODE_ON:
                 thread = threading.Thread(
                     target=process_and_create_action_items_for_file_in_fg,
@@ -101,6 +100,7 @@ class FileParsingRoutes(Resource):
                 thread.start()
             else:
                 print("Sending to queue")
+                fetch_and_store_embeddings_for_pdf.apply_async(kwargs={"file_content":text_pages_of_file, "user_id":user_id})
                 process_and_create_action_items_for_file_in_bg.apply_async(
                     kwargs={"file_id": saved_file.id, "user_id": user_id}
                 )
@@ -217,7 +217,6 @@ class FileTopicRoutes(Resource):
             user_id = request.user_id
         except Exception:
             user_id = CUSTOM_USER_ID
-
         args: ParseResult = self.parser.parse_args()
         topic_name: str = args.get("topicName")
 

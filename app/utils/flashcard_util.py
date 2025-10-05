@@ -53,6 +53,7 @@ def generate_flashcard_for_file(file_id: str, user_id: str):
         file_id=file_id,
         file_name=file_object.file_name,
         flashcard_name="",
+        user_id=user_id
     )
 
     return response, total_flashcard_count
