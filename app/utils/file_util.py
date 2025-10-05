@@ -39,6 +39,7 @@ def process_and_create_action_items_for_file_in_bg(self, file_id: str, user_id: 
 
         logger.info(f"{self.request.id}] Generating flashcards for file: {file_id}")
         logger.info(f"[{self.request.id}] Processed file successfully")
+        return
     except Exception as e:
         logger.warning(
             f"{self.request.id} Error processing file {file_id}, retry-{self.request.retries + 1}: {e}"
@@ -67,7 +68,18 @@ def process_and_create_action_items_for_file_in_fg(file_id: str, user_id: str):
 
     return
 
+@celery_app.task(
+    bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=5
+)
+def fetch_and_store_embeddings_for_pdf(self, file_content, user_id) -> None:
+    try:
+        print("Inside fetch_and_store_embeddings_for_pdf")
+        store_pdf_in_qdrant(text_pages=file_content, user_id=user_id)
+        return
+    except Exception as e:
+        logger.warning(
+            f"{self.request.id} Error processing file for user_id: {user_id}, retry-{self.request.retries + 1}: {e}"
+        )
+        raise self.retry(exc=e, countdown=30)
+    
 
-def fetch_and_store_embeddings_for_pdf(file_content, user_id) -> None:
-    print("Inside fetch_and_store_embeddings_for_pdf")
-    store_pdf_in_qdrant(text_pages=file_content, user_id=user_id)
