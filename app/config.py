@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from loguru import logger
+
 load_dotenv()
 
 CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")

@@ -68,6 +68,7 @@ def process_and_create_action_items_for_file_in_fg(file_id: str, user_id: str):
 
     return
 
+
 @celery_app.task(
     bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=5
 )
@@ -81,5 +82,3 @@ def fetch_and_store_embeddings_for_pdf(self, file_content, user_id) -> None:
             f"{self.request.id} Error processing file for user_id: {user_id}, retry-{self.request.retries + 1}: {e}"
         )
         raise self.retry(exc=e, countdown=30)
-    
-

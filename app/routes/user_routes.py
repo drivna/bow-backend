@@ -16,7 +16,7 @@ from app.utils.activity_util import (
     get_user_flashcard_count,
     get_user_quiz_count,
 )
-from app.utils.jwt_utils import get_attribute_from_token
+from app.utils.jwt_utils import create_token, get_attribute_from_token
 from app.utils.password_utils import are_passwords_matching, hash_password
 from flask_restx.reqparse import ParseResult, RequestParser
 
@@ -68,10 +68,11 @@ class UserRegistrationRoutes(Resource):
 
         ObjectRepository.insert_single_object(object_to_be_inserted=user)
         user_id = user.id
+        access_token: str = create_token(user_id=user_id)
         return {
             "error": None,
             "message": "user created successfully",
-            "data": {"id": user_id},
+            "data": {"id": user_id, "access_token": access_token},
         }, 201
 
 
@@ -110,11 +111,12 @@ class UserLoginRoutes(Resource):
             raise ValueError("Incorrect email or password provided")
 
         user_id = user.id
+        access_token: str = create_token(user_id=user_id)
 
         return {
             "error": None,
             "message": "user logged in successfully",
-            "data": {"id": user_id},
+            "data": {"id": user_id, "access_token": access_token},
         }, 201
 
 

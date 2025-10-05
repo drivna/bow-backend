@@ -100,7 +100,9 @@ class FileParsingRoutes(Resource):
                 thread.start()
             else:
                 print("Sending to queue")
-                fetch_and_store_embeddings_for_pdf.apply_async(kwargs={"file_content":text_pages_of_file, "user_id":user_id})
+                fetch_and_store_embeddings_for_pdf.apply_async(
+                    kwargs={"file_content": text_pages_of_file, "user_id": user_id}
+                )
                 process_and_create_action_items_for_file_in_bg.apply_async(
                     kwargs={"file_id": saved_file.id, "user_id": user_id}
                 )
@@ -119,7 +121,7 @@ class FileParsingRoutes(Resource):
                 "file_name": saved_file.file_name,
                 "content": file_content,
                 "file_id": saved_file.id,
-                'signed_url': signed_url
+                "signed_url": signed_url,
             },
         }, 201
 
