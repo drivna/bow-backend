@@ -27,8 +27,8 @@ services:
     networks:
       - flask-network
 
-  bow-worker-1:
-    container_name: bow-worker-1
+  bow-worker-2:
+    container_name: bow-worker-2
     build:
       context: .
       dockerfile: Dockerfile.worker
