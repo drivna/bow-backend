@@ -1,3 +1,4 @@
+import traceback
 from loguru import logger
 from app.celery_app import celery_app
 from app.database.models.file import FileModel
@@ -44,6 +45,7 @@ def process_and_create_action_items_for_file_in_bg(self, file_id: str, user_id: 
         logger.warning(
             f"{self.request.id} Error processing file {file_id}, retry-{self.request.retries + 1}: {e}"
         )
+        logger.error(traceback.format_exc())
         raise self.retry(exc=e, countdown=30)
 
 
