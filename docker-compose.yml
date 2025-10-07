@@ -53,6 +53,25 @@ services:
     networks:
       - flask-network
 
+  bow-socket-server:
+    build:
+      context: ../bow-ws
+    container_name: bow-socket-server
+    ports:
+      - "4001:4001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SOCKETIO_REDIS_DB=1
+      - SESSION_REDIS_DB=0
+    volumes:
+    - ../bow-ws:/app
+    depends_on:
+    - redis
+    - flask-app
+    networks:
+    - flask-network
+
 
 
   redis:
