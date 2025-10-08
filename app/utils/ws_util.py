@@ -1,7 +1,9 @@
 from flask_socketio import SocketIO
 from loguru import logger
+import os
 
-socket_client = SocketIO(message_queue="redis://localhost:6379/1")
+SOCKETIO_REDIS_URL = os.getenv('CELERY_RESULT_BACKEND','redis://redis:6379/1')
+socket_client = SocketIO(message_queue=SOCKETIO_REDIS_URL)
 
 
 def send_to_room(
