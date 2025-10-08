@@ -244,8 +244,7 @@ class QuizAnswersRoutes(Resource):
                     user_id=user_id,
                 )
 
-                quiz_object.has_completed = True
-                ObjectRepository.update_single_object(quiz_object)
+                update_quiz_summary(quiz_id=quiz_id, user_id=user_id, has_completed=True)
 
                 return {
                     "error": None,

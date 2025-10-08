@@ -313,7 +313,9 @@ def get_quiz_summary(quiz_id: str, user_id: str) -> Dict[str, Any]:
     }
 
 
-def update_quiz_summary(quiz_id: str, user_id: str, has_started: bool = False) -> Dict[str, Any]:
+def update_quiz_summary(
+    quiz_id: str, user_id: str, has_started: bool = False, has_completed: bool = False
+) -> Dict[str, Any]:
     with Session(database_engine) as session:
         quiz: QuizModel = (
             session.query(QuizModel)
@@ -331,6 +333,9 @@ def update_quiz_summary(quiz_id: str, user_id: str, has_started: bool = False) -
 
         if has_started == True:
             quiz.has_started = True
+
+        if has_completed is True:
+            quiz.has_completed = True
 
         session.commit()  # commits the changes
         logger.info(f"Updated quiz: {quiz_id} with summary: {summary}")
