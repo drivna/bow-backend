@@ -59,7 +59,6 @@ class ChatRoute(Resource):
 
         send_reply_to_user(
             user_message=message,
-            file_content=file.file_content,
             user_id=user_id,
             file_id=file_id,
         )
