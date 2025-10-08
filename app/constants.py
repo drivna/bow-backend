@@ -289,7 +289,7 @@ class ChatGptPrompts:
 
     Each question must follow these rules:
     - 4 options labeled 1, 2, 3, 4.
-    - One or more options may be correct. Return correct answers as a list, like [1] or [2, 4].
+    - Only one and only one mor option may be correct. Return correct answer as a list, like [1] or [2].
 
     Format your response as valid JSON like this:
 
