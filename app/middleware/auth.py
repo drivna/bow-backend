@@ -18,9 +18,10 @@ def add_token_to_cookies(response: Response, registered_user_id: str):
         access_token,
         httponly=True,
         max_age=expires,
-        samesite=None,  
-        secure=True,  
+        samesite="none",  # must be string, not None
+        secure=True,      # required for cross-site cookies
     )
+
 
     return response
 
