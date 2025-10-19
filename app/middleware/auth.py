@@ -18,8 +18,8 @@ def add_token_to_cookies(response: Response, registered_user_id: str):
         access_token,
         httponly=True,
         max_age=expires,
-        samesite="Lax",  # ✅ Lax works fine for most cases on same-origin requests
-        secure=False,  # ✅ Must be False for HTTP (localhost)
+        samesite=None,  
+        secure=True,  
     )
 
     return response
