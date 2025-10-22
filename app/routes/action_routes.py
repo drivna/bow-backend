@@ -42,6 +42,7 @@ class ActionSummaryRoutes(Resource):
     parser.add_argument("userSelectedContent", help="custom_content", required=False)
 
     @action_api_ns.expect(parser)
+    @authenticate_user
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
@@ -82,6 +83,7 @@ class ActionFlashCardRoutes(Resource):
     parser.add_argument("fileId", help="FileId", required=True)
 
     @action_api_ns.expect(parser)
+    @authenticate_user
     def post(self):
         args: ParseResult = self.parser.parse_args()
         file_id: str = args.get("fileId")
