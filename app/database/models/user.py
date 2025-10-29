@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, List
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -22,6 +22,12 @@ class UserModel(Base):
         "PASSWORD",
         String(255),
         nullable=False,
+    )
+    is_active: Mapped[bool] = mapped_column(
+        "IS_ACTIVE",
+        Boolean,
+        nullable=False,
+        default=False,
     )
 
     __tablename__ = "USERS"

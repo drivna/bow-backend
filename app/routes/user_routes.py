@@ -10,6 +10,7 @@ from app.database import query_manager
 from app.database.models.activity import ActivityModel
 from app.database.models.user import UserModel
 from app.database.object_repository import ObjectRepository
+from app.exceptions.forbidden_error import ForbiddenError
 from app.middleware.auth import add_token_to_cookies, authenticate_user
 from app.utils.activity_util import (
     get_user_files_count,
@@ -109,6 +110,9 @@ class UserLoginRoutes(Resource):
         )
         if not are_passwords_same:
             raise ValueError("Incorrect email or password provided")
+
+        if user.is_active is False:
+            raise ForbiddenError("User is inactive")
 
         user_id = user.id
         access_token: str = create_token(user_id=user_id)
