@@ -11,8 +11,7 @@ def generate_topics_for_file_and_update_knowledge_map(file_content, file_id, use
 
     def build_messages(system_prompt, pages):
         messages = [{"role": "system", "content": system_prompt}]
-        for page_index in range(len(pages)):
-            messages.append({"role": "user", "content": f"{page_index}:\n{pages[page_index]}"})
+        messages.append({"role": "user", "content": pages})
         return messages
 
     system_prompt = ChatGptPrompts.get_topic_generation_prompt()
